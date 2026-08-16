@@ -6,24 +6,24 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  gap: 8px;
 }
 
 .state {
   text-align: center;
   padding: 48px 0;
-  color: var(--text-muted);
+  color: var(--mute);
 }
 
 .retry {
   background: none;
-  border: 1px solid var(--accent-gold);
-  color: var(--accent-gold);
+  border: 1px solid var(--ink);
+  color: var(--ink);
   border-radius: var(--radius-pill);
   padding: 8px 20px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .retry:hover {
-  background: rgba(184, 134, 59, 0.1);
+  background: var(--soft-cloud);
 }

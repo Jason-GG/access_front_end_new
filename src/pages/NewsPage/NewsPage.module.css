@@ -1,19 +1,20 @@
 .hero {
   background: var(--canvas);
-  padding: 64px 0 48px;
+  padding: var(--sp-section) 0 32px;
 }
 
 .title {
-  font-size: 2.4rem;
+  font-size: 32px;
+  text-transform: uppercase;
   margin-bottom: 0.4em;
 }
 
 .lead {
   max-width: 62ch;
-  color: var(--text-muted);
-  font-size: 1.05rem;
+  color: var(--mute);
+  font-size: 16px;
 }
 
 .feedBand {
-  border-top: 1px solid var(--hairline);
+  padding-top: var(--sp-section);
 }

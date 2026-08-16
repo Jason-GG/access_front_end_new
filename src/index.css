@@ -1,29 +1,61 @@
 /* ------------------------------------------------------------------
-   Access Chess — "Tournament Hall" design tokens
-   Walnut, ivory, brass, felt. One gold accent for interaction.
+   Access Chess — editorial commerce system
+   Photography speaks, the chrome doesn't: pure black, pure white,
+   one soft gray, pill geometry, flat cards, 8px grid.
    ------------------------------------------------------------------ */
 :root {
-  --ink: #1b140f;
-  --canvas: #faf6ee;
-  --canvas-dim: #f1e9d8;
-  --board-dark: #3c2a1a;
-  --board-deep: #24180e;
-  --accent-gold: #b8863b;
-  --accent-gold-hover: #a5762f;
-  --felt-green: #2f4a3d;
-  --garnet: #7a2e2e;
-  --hairline: #d9c8a0;
-  --hairline-dark: #4a3624;
-  --text-muted: #6b5d4a;
-  --text-on-dark: #f1e9d8;
+  /* Palette */
+  --ink: #111111;
+  --on-primary: #ffffff;
+  --canvas: #ffffff;
+  --soft-cloud: #f5f5f5;
+  --charcoal: #39393b;
+  --ash: #4b4b4d;
+  --mute: #707072;
+  --stone: #9e9ea0;
+  --hairline: #cacacb;
+  --hairline-soft: #e5e5e5;
 
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-notation: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Semantic — reserved, never decorative */
+  --sale: #d30005;
+  --sale-deep: #780700;
+  --success: #007d48;
+  --success-bright: #1eaa52;
+  --info: #1151ff;
+  --info-deep: #0034e3;
 
-  --radius-card: 3px;
-  --radius-pill: 999px;
-  --page-max: 1120px;
+  /* Category accents — editorial tiles/swatches only */
+  --accent-pink: #9384dd;
+  --accent-pink-soft: #b1abce;
+  --accent-pink-hover: #e992c9;
+  --accent-purple-soft: #beaffd;
+  --accent-purple-pale: #d6d1ff;
+  --accent-teal: #0a7281;
+  --accent-teal-soft: #cdeef2;
+  --accent-teal-hover: #075a66;
+  --accent-pink-deep: #4c012d;
+
+  /* Type */
+  --font-display: "Bebas Neue", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-notation: var(--font-body);
+
+  /* Shape */
+  --radius-none: 0;
+  --radius-md: 24px;
+  --radius-lg: 30px;
+  --radius-pill: 9999px;
+
+  /* Layout */
+  --page-max: 1440px;
+  --sp-xxs: 2px;
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 18px;
+  --sp-xl: 24px;
+  --sp-xxl: 30px;
+  --sp-section: 48px;
 }
 
 *,
@@ -42,7 +74,7 @@ body {
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -50,11 +82,24 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.15;
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.2;
   margin: 0 0 0.5em;
   color: var(--ink);
+}
+
+h1 {
+  font-size: 32px;
+}
+
+h2 {
+  font-size: 24px;
+}
+
+h3 {
+  font-size: 16px;
+  line-height: 1.75;
 }
 
 p {
@@ -62,12 +107,13 @@ p {
 }
 
 a {
-  color: var(--accent-gold);
-  text-decoration: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 a:hover {
-  color: var(--accent-gold-hover);
+  color: var(--accent-pink);
 }
 
 button,
@@ -89,12 +135,12 @@ svg {
 }
 
 ::selection {
-  background: var(--accent-gold);
-  color: var(--text-on-dark);
+  background: var(--accent-pink);
+  color: var(--on-primary);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent-gold);
+  outline: 2px solid var(--accent-pink);
   outline-offset: 2px;
 }
 
@@ -105,25 +151,36 @@ svg {
   width: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
 }
 
-/* The signature type: any chess data — usernames, clocks, moves,
-   ratings, datelines — is set in notation face everywhere. */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 24px;
+  }
+}
+
+/* Chess data — usernames, clocks, moves, datelines — stays in the
+   UI workhorse face, marked by weight and size, never decoration. */
 .notation {
   font-family: var(--font-notation);
+  font-weight: 500;
   font-size: 0.9em;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
+/* The single display tier — reserved for editorial campaign lockups. */
 .display {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
+  text-transform: uppercase;
+  line-height: 0.9;
+  letter-spacing: 0;
 }
 
-/* Alternating ivory/walnut section bands — the slow light/dark pulse. */
+/* Section bands: flat surfaces, section rhythm, no decorative dividers. */
 .band {
-  padding: 88px 0;
+  padding: var(--sp-section) 0;
 }
 
 .band--canvas {
@@ -131,35 +188,51 @@ svg {
 }
 
 .band--dim {
-  background: var(--canvas-dim);
+  background: var(--soft-cloud);
 }
 
 .band--dark {
-  background: var(--board-dark);
-  color: var(--text-on-dark);
+  background: var(--ink);
+  color: var(--on-primary);
 }
 
 .band--dark h1,
 .band--dark h2,
 .band--dark h3 {
-  color: var(--text-on-dark);
+  color: var(--on-primary);
 }
 
 .band--dark p {
-  color: var(--text-on-dark);
+  color: var(--stone);
 }
 
 .eyebrow {
-  font-family: var(--font-notation);
+  font-family: var(--font-body);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.78rem;
-  color: var(--accent-gold);
-  margin-bottom: 1rem;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  color: var(--accent-teal);
+  margin-bottom: var(--sp-md);
+}
+
+.band--dark .eyebrow {
+  color: var(--accent-teal-soft);
+}
+
+/* Section header tier: 32px display-medium, uppercase, tight. */
+.section-heading {
+  font-size: 32px;
+  text-transform: uppercase;
+  letter-spacing: 0;
 }
 
 @media (max-width: 720px) {
   .band {
-    padding: 56px 0;
+    padding: 24px 0;
+  }
+
+  .container {
+    padding: 0 16px;
   }
 }

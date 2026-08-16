@@ -1,65 +1,91 @@
 .hero {
   background: var(--canvas);
-  padding: 64px 0 48px;
+  padding: var(--sp-section) 0 32px;
 }
 
 .title {
-  font-size: 2.4rem;
+  font-size: 32px;
+  text-transform: uppercase;
   margin-bottom: 0.4em;
 }
 
 .lead {
   max-width: 62ch;
-  color: var(--text-muted);
-  font-size: 1.05rem;
+  color: var(--mute);
+  font-size: 16px;
 }
 
 .listBand {
-  border-top: 1px solid var(--hairline);
+  padding-top: var(--sp-section);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
+  gap: 8px;
 }
 
 .card {
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  padding: 26px;
+  border-radius: var(--radius-none);
+  padding: 0 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: transform 150ms ease, border-color 150ms ease;
+  gap: 8px;
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent-gold);
+.image {
+  position: relative;
+  background: var(--soft-cloud);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
 }
 
-.difficulty {
-  align-self: flex-start;
-  background: var(--felt-green);
-  color: var(--text-on-dark);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 3px 10px;
+.glyph {
+  font-size: 96px;
+  color: var(--ink);
+}
+
+.badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.badgeTeal {
+  background: var(--accent-teal-soft);
+  color: var(--accent-teal);
+}
+
+.badgePink {
+  background: var(--accent-pink-soft);
+  color: var(--accent-pink);
+}
+
+.badgeInk {
+  background: var(--ink);
+  color: var(--on-primary);
 }
 
 .cardTitle {
-  font-size: 1.2rem;
-  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 12px 24px 0;
 }
 
 .cardBody {
-  color: var(--text-muted);
-  font-size: 0.94rem;
-  margin: 0;
+  color: var(--mute);
+  font-size: 15px;
+  margin: 0 24px;
   flex-grow: 1;
 }
 
@@ -67,12 +93,15 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  color: var(--text-muted);
-  font-size: 0.8rem;
+  color: var(--mute);
+  font-size: 12px;
   border-top: 1px solid var(--hairline);
-  padding-top: 12px;
+  padding: 12px 24px 0;
+  margin: 0 24px;
 }
 
 .openLesson {
-  color: var(--accent-gold);
+  color: var(--accent-pink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

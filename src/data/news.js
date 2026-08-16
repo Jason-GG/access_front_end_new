@@ -51,6 +51,6 @@ export const newsItems = [
     date: '2026-07-21',
     author: 'The Committee',
     summary:
-      'Member donations funded the restoration of the hall’s vintage brass clocks, now ticking again for Friday night rapid sessions.',
+      'Member donations funded the restoration of the hall’s vintage clocks, now ticking again for Friday night rapid sessions.',
   },
 ]

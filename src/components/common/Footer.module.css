@@ -1,16 +1,44 @@
 .footer {
-  background: var(--board-dark);
-  color: var(--text-on-dark);
-  border-top: 2px solid var(--hairline-dark);
+  background: var(--canvas);
+  border-top: 1px solid var(--hairline);
+  color: var(--ink);
 }
 
 .inner {
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 48px 24px 40px;
+  padding: var(--sp-section) 40px 24px;
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 2fr repeat(4, 1fr);
   gap: 32px;
+}
+
+.brandCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.mark {
+  width: 28px;
+  height: 28px;
+}
+
+.tagline {
+  color: var(--mute);
+  font-size: 14px;
+  margin: 0;
+  max-width: 30ch;
 }
 
 .col {
@@ -19,66 +47,68 @@
   gap: 10px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.tagline {
-  color: var(--text-on-dark);
-  opacity: 0.72;
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.dateline {
-  color: var(--accent-gold);
-  margin: 0;
+.colHeading {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.06em;
 }
 
 .link {
-  color: var(--text-on-dark);
-  opacity: 0.82;
-  font-size: 0.92rem;
+  color: var(--mute);
+  font-size: 14px;
+  font-weight: 500;
   text-decoration: none;
+  width: fit-content;
 }
 
 .link:hover {
-  color: var(--accent-gold);
-  opacity: 1;
+  color: var(--accent-pink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.base {
-  border-top: 1px solid var(--hairline-dark);
+.finePrint {
+  border-top: 1px solid var(--hairline);
 }
 
-.baseInner {
+.fineInner {
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 16px 24px;
+  padding: 16px 40px;
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
-  color: var(--text-on-dark);
-  opacity: 0.62;
-  font-size: 0.8rem;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--mute);
+}
+
+@media (max-width: 1024px) {
+  .inner {
+    grid-template-columns: 1fr 1fr;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .fineInner {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
 }
 
 @media (max-width: 720px) {
   .inner {
     grid-template-columns: 1fr;
-    gap: 24px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .fineInner {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

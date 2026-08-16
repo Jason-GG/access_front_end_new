@@ -1,5 +1,5 @@
 .page {
-  padding: 48px 0 72px;
+  padding: var(--sp-section) 0 72px;
   background: var(--canvas);
 }
 
@@ -9,27 +9,29 @@
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .title {
-  font-size: 2.2rem;
+  font-size: 32px;
+  text-transform: uppercase;
   margin: 0;
 }
 
 .statusLine {
-  color: var(--text-muted);
-  font-size: 0.88rem;
+  color: var(--mute);
+  font-size: 12px;
+  font-weight: 500;
   border: 1px solid var(--hairline);
   border-radius: var(--radius-pill);
   padding: 6px 14px;
-  background: var(--canvas-dim);
+  background: var(--soft-cloud);
 }
 
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 28px;
+  gap: 8px;
   align-items: start;
 }
 
@@ -40,40 +42,42 @@
 .controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .segmented {
   display: inline-flex;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  background: var(--canvas-dim);
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .segment {
-  background: transparent;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  padding: 0 16px;
+  height: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
   transition: background-color 140ms ease, color 140ms ease;
 }
 
 .segment:hover {
-  color: var(--accent-gold);
+  border-color: var(--ink);
 }
 
 .segmentActive {
-  background: var(--accent-gold);
-  color: var(--text-on-dark);
+  background: var(--accent-pink);
+  border-color: var(--accent-pink);
+  color: var(--ink);
 }
 
 .segmentActive:hover {
-  color: var(--text-on-dark);
+  background: var(--accent-pink-hover);
+  color: var(--ink);
 }
 
 .controlButton {
@@ -85,32 +89,33 @@
   margin: 14px auto 0;
   background: none;
   border: none;
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  color: var(--mute);
+  font-size: 14px;
+  font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 3px;
+  padding: 0;
 }
 
 .rulesToggle:hover {
-  color: var(--accent-gold);
+  color: var(--accent-pink);
 }
 
 .sideCol {
   display: grid;
-  gap: 16px;
+  gap: 12px;
   position: sticky;
-  top: 88px;
+  top: 120px;
 }
 
 .modalResult {
-  font-family: var(--font-notation);
-  font-size: 1.1rem;
+  font-size: 16px;
   font-weight: 500;
   margin: 0 0 8px;
 }
 
 .modalBody {
-  color: var(--text-muted);
+  color: var(--mute);
   margin-bottom: 20px;
 }
 
@@ -124,6 +129,7 @@
   color: var(--ink);
   display: grid;
   gap: 8px;
+  font-size: 15px;
 }
 
 @media (max-width: 980px) {

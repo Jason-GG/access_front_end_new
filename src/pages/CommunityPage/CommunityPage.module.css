@@ -1,36 +1,38 @@
 .hero {
   background: var(--canvas);
-  padding: 64px 0 48px;
+  padding: var(--sp-section) 0 32px;
 }
 
 .title {
-  font-size: 2.4rem;
+  font-size: 32px;
+  text-transform: uppercase;
   margin-bottom: 0.4em;
 }
 
 .lead {
   max-width: 62ch;
-  color: var(--text-muted);
-  font-size: 1.05rem;
+  color: var(--mute);
+  font-size: 16px;
 }
 
 .board {
-  border-top: 1px solid var(--hairline);
+  padding-top: var(--sp-section);
 }
 
 .composer {
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  border-top: 3px solid var(--accent-gold);
-  border-radius: var(--radius-card);
-  padding: 22px;
-  margin-bottom: 28px;
+  border-radius: var(--radius-none);
+  padding: 24px;
+  margin-bottom: 24px;
 }
 
 .composerLabel {
   display: block;
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   margin-bottom: 10px;
 }
 
@@ -39,14 +41,14 @@
   resize: vertical;
   background: transparent;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-none);
   padding: 12px;
-  font-size: 0.95rem;
+  font-size: 16px;
 }
 
 .composerInput:focus {
   outline: none;
-  border-color: var(--accent-gold);
+  border-color: var(--ink);
 }
 
 .composerFooter {
@@ -58,26 +60,26 @@
 }
 
 .counter {
-  color: var(--text-muted);
-  font-size: 0.8rem;
+  color: var(--mute);
+  font-size: 12px;
 }
 
 .posted {
-  color: var(--felt-green);
-  font-size: 0.88rem;
+  color: var(--success);
+  font-size: 14px;
   margin: 12px 0 0;
 }
 
 .feed {
   display: grid;
-  gap: 18px;
+  gap: 8px;
 }
 
 .post {
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  padding: 22px;
+  border-radius: var(--radius-none);
+  padding: 24px;
 }
 
 .postMeta {
@@ -92,17 +94,17 @@
 .handle {
   color: var(--ink);
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 16px;
 }
 
 .time {
-  color: var(--text-muted);
-  font-size: 0.76rem;
+  color: var(--mute);
+  font-size: 12px;
 }
 
 .postBody {
-  color: var(--ink);
-  font-size: 0.98rem;
+  color: var(--charcoal);
+  font-size: 16px;
   margin-bottom: 14px;
 }
 
@@ -115,19 +117,21 @@
 }
 
 .replyCount {
-  color: var(--text-muted);
-  font-size: 0.78rem;
+  color: var(--mute);
+  font-size: 12px;
 }
 
 .replyLink {
   background: none;
   border: none;
-  color: var(--accent-gold);
-  font-weight: 600;
-  font-size: 0.88rem;
+  color: var(--accent-pink);
+  font-weight: 500;
+  font-size: 14px;
   padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .replyLink:hover {
-  color: var(--accent-gold-hover);
+  color: var(--accent-pink-hover);
 }

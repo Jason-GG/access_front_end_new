@@ -3,44 +3,72 @@ import knightMark from '../../assets/knight-mark.svg'
 import { ROUTES } from '../../utils/constants'
 import styles from './Footer.module.css'
 
-const FOOTER_LINKS = [
-  { to: ROUTES.learn, label: 'Lessons' },
-  { to: ROUTES.community, label: 'Community' },
-  { to: ROUTES.news, label: 'News' },
-  { to: ROUTES.donate, label: 'Support the hall' },
+const COLUMNS = [
+  {
+    heading: 'Explore',
+    links: [
+      { to: ROUTES.play, label: 'Play' },
+      { to: ROUTES.learn, label: 'Learn' },
+      { to: ROUTES.news, label: 'News' },
+    ],
+  },
+  {
+    heading: 'Club',
+    links: [
+      { to: ROUTES.community, label: 'Community' },
+      { to: ROUTES.community, label: 'Find a club' },
+      { to: ROUTES.learn, label: 'Help' },
+    ],
+  },
+  {
+    heading: 'Support',
+    links: [
+      { to: ROUTES.donate, label: 'Donate' },
+      { to: ROUTES.signup, label: 'Join us' },
+      { to: ROUTES.login, label: 'Sign in' },
+    ],
+  },
+  {
+    heading: 'About',
+    links: [
+      { to: ROUTES.home, label: 'The club' },
+      { to: ROUTES.news, label: 'Announcements' },
+      { to: ROUTES.donate, label: 'Support the hall' },
+    ],
+  },
 ]
 
 export function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
-        <div className={styles.col}>
+        <div className={styles.brandCol}>
           <p className={styles.brand}>
-            <img src={knightMark} className={styles.mark} alt="Access Chess knight" />
-            <span className={styles.brandName}>Access Chess</span>
+            <img src={knightMark} className={styles.mark} alt="" />
+            <span className={styles.brandName}>ACCESS CHESS</span>
           </p>
           <p className={styles.tagline}>
-            A quiet tournament hall for playing, learning, and community.
+            A chess club for players who train like athletes. Play, learn, compete.
           </p>
         </div>
-        <nav className={styles.col} aria-label="Footer">
-          {FOOTER_LINKS.map((link) => (
-            <Link key={link.to} to={link.to} className={styles.link}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <div className={styles.col}>
-          <p className={styles.dateline}>
-            <span className="notation">EST. MMXXVI · SHANGHAI</span>
-          </p>
-          <p className={styles.tagline}>Built for the love of the game.</p>
-        </div>
+
+        {COLUMNS.map((column) => (
+          <nav key={column.heading} className={styles.col} aria-label={column.heading}>
+            <p className={styles.colHeading}>{column.heading.toUpperCase()}</p>
+            {column.links.map((link) => (
+              <Link key={link.label} to={link.to} className={styles.link}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ))}
       </div>
-      <div className={styles.base}>
-        <div className={styles.baseInner}>
-          <span className="notation">© 2026 Access Chess</span>
-          <span className="notation">64 squares · 32 pieces · 1 game</span>
+
+      <div className={styles.finePrint}>
+        <div className={styles.fineInner}>
+          <span>© 2026 Access Chess</span>
+          <span>Terms of Use · Privacy Policy · Supply Chain Act</span>
+          <span>Shanghai, CN</span>
         </div>
       </div>
     </footer>

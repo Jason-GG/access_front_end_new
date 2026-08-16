@@ -10,9 +10,9 @@ export function NotFoundPage() {
     <section className={styles.page}>
       <div className="container">
         <p className="eyebrow">Off the board</p>
-        <h1 className={styles.title}>404 — no legal move here</h1>
+        <h1 className={`display ${styles.title}`}>No legal move.</h1>
         <p className={styles.body}>
-          This square does not exist. The arbiter suggests returning to the hall.
+          This square does not exist. The arbiter suggests returning to the club.
         </p>
         <Button size="lg" onClick={() => navigate(ROUTES.home)}>
           Back to the hall

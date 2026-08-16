@@ -1,8 +1,9 @@
 # Access Chess — Tournament Hall
 
 A React front end for a chess platform: play, learn, connect with the community, read chess
-news, and support the club — all styled around a warm "tournament hall" design system of
-walnut, ivory, brass, and felt.
+news, and support the club — styled around an editorial, commerce-grade design system:
+photography speaks, the chrome doesn't. Pure black, pure white, one soft gray, pill
+geometry, flat cards, and a towering uppercase display tier.
 
 Built from the project plan in `docs/plan.md` (scaffold + auth + play + static tabs first,
 backend integration later).
@@ -62,14 +63,26 @@ components and hooks, and `services/` isolate every outside-world call from the 
 
 ## Design system notes
 
-- The one interactive color is brass gold; felt green is reserved for "your turn" /
-  success states, and garnet only for check, errors, and account warnings.
-- The chessboard keeps traditional square colors for legibility — the brand palette
-  never touches the playing surface.
-- Every piece of chess data — usernames, clocks, move lists, datelines — is set in the
-  notation monospace (`IBM Plex Mono`).
-- Sections alternate ivory/walnut bands instead of relying on shadows and gradients.
-- Fonts load from Google Fonts with system fallbacks (Georgia, system-ui, monospace).
+- **Chrome palette:** `#111111` ink, `#ffffff` canvas, `#f5f5f5` soft-cloud carry the
+  surfaces, with two brand accents on top — **pink** (`#ed1aa0`) for interactive moments
+  (primary CTAs, active chips, links) and **teal** (`#0a7281`) for editorial moments
+  (eyebrows, categories, lesson badges, on-image CTAs).
+- Semantic color stays reserved: sale red for check/errors, success green for "your turn",
+  info blue for member callouts.
+- **Shape vocabulary:** every CTA, filter chip, and badge is a pill (`9999px`); every card,
+  tile, and container is flat (`0px` radius, no shadow).
+- **Typography:** Bebas Neue at 96px/0.9 line-height/uppercase for the single campaign
+  display tier; Inter 400/500 for everything else — the "billboard above, catalog below"
+  jump is intentional.
+- **Chess data** (usernames, clocks, move lists, datelines) stays in the UI face, marked
+  by weight and size rather than decoration.
+- **The chessboard itself** keeps traditional square colors for legibility — the brand
+  palette never touches the playing surface.
+- **Spacing:** 8px base grid; sections breathe at 48px rhythm with no decorative dividers.
+- Fonts load from Google Fonts with system fallbacks (Arial Narrow, Helvetica, Arial).
+
+The design system mirrors the Nike-design-analysis reference in `docs/` — this is the
+adapted "editorial chess club" build.
 
 ## Demo-mode decisions (the plan's open questions)
 
@@ -83,6 +96,8 @@ components and hooks, and `services/` isolate every outside-world call from the 
 - **Donations:** demo flow with a confirmation dialog. Stripe/PayPal connect when the
   backend exists.
 - **Promotions:** pawns auto-promote to a queen in this first pass.
+- **Campaign photography:** the hero uses a code-native board-grid texture today; real
+  editorial photography can drop into `src/assets/` (see `HomePage`) when assets exist.
 
 ## Roadmap from the plan
 

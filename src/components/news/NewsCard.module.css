@@ -1,8 +1,8 @@
 .card {
   background: var(--canvas);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  padding: 24px;
+  border-radius: var(--radius-none);
+  padding: var(--sp-xl);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -10,43 +10,40 @@
 }
 
 .cardFeatured {
-  background: var(--board-dark);
-  border-color: var(--hairline-dark);
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .cardFeatured .title {
-  color: var(--text-on-dark);
+  color: var(--on-primary);
 }
 
 .cardFeatured .summary {
-  color: var(--text-on-dark);
-  opacity: 0.86;
+  color: var(--stone);
 }
 
 .category {
-  font-family: var(--font-notation);
-  font-size: 0.72rem;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--accent-gold);
+  letter-spacing: 0.1em;
+  color: var(--accent-teal);
+}
+
+.cardFeatured .category {
+  color: var(--accent-pink-soft);
 }
 
 .title {
-  font-size: 1.22rem;
+  font-size: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0;
   margin: 0;
 }
 
-/* Small gold rule under the headline — a brass nameplate touch. */
-.rule {
-  width: 42px;
-  height: 2px;
-  background: var(--accent-gold);
-}
-
 .summary {
-  font-size: 0.95rem;
-  color: var(--ink);
-  opacity: 0.82;
+  font-size: 16px;
+  color: var(--charcoal);
   margin: 0;
   flex-grow: 1;
 }
@@ -55,14 +52,13 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: var(--text-muted);
-  font-size: 0.78rem;
+  color: var(--mute);
+  font-size: 12px;
   border-top: 1px solid var(--hairline);
   padding-top: 12px;
 }
 
 .cardFeatured .meta {
-  color: var(--text-on-dark);
-  opacity: 0.72;
-  border-top-color: var(--hairline-dark);
+  color: var(--stone);
+  border-top-color: var(--ash);
 }

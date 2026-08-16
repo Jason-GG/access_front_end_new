@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(27, 20, 15, 0.62);
+  background: rgba(17, 17, 17, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -11,12 +11,11 @@
 
 .dialog {
   background: var(--canvas);
-  border-top: 3px solid var(--accent-gold);
-  border-radius: var(--radius-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-none);
   width: 100%;
   max-width: 440px;
-  padding: 28px;
-  box-shadow: 0 18px 50px rgba(27, 20, 15, 0.35);
+  padding: 32px;
 }
 
 .header {
@@ -29,20 +28,21 @@
 
 .title {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 24px;
+  text-transform: uppercase;
 }
 
 .close {
   background: none;
   border: none;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   line-height: 1;
-  color: var(--text-muted);
+  color: var(--ink);
   padding: 0 4px;
 }
 
 .close:hover {
-  color: var(--garnet);
+  color: var(--accent-pink);
 }
 
 .body {

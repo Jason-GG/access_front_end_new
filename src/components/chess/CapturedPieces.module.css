@@ -1,30 +1,35 @@
 .panel {
-  background: var(--canvas-dim);
+  background: var(--canvas);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  padding: 14px;
+  border-radius: var(--radius-none);
+  padding: var(--sp-xl);
 }
 
 .title {
   margin: 0 0 10px;
-  font-family: var(--font-notation);
-  font-size: 0.74rem;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  color: var(--mute);
 }
 
 .row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 4px 0;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+
+.row:last-child {
+  border-bottom: none;
 }
 
 .label {
   flex: 0 0 92px;
-  color: var(--text-muted);
-  font-size: 0.78rem;
+  color: var(--mute);
+  font-size: 12px;
 }
 
 .glyphs {
@@ -34,8 +39,4 @@
   display: flex;
   gap: 3px;
   flex-wrap: wrap;
-}
-
-.glyphsBlack {
-  color: var(--ink);
 }

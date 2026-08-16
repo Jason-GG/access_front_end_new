@@ -1,8 +1,8 @@
 .panel {
-  background: var(--canvas-dim);
+  background: var(--canvas);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  padding: 14px;
+  border-radius: var(--radius-none);
+  padding: var(--sp-xl);
 }
 
 .head,
@@ -14,11 +14,11 @@
 }
 
 .head {
-  font-family: var(--font-notation);
-  font-size: 0.72rem;
+  font-size: 12px;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  color: var(--mute);
   border-bottom: 1px solid var(--hairline);
   padding-bottom: 8px;
   margin-bottom: 6px;
@@ -33,10 +33,10 @@
 }
 
 .row {
-  padding: 5px 0;
-  font-family: var(--font-notation);
-  font-size: 0.9rem;
-  border-bottom: 1px solid rgba(217, 200, 160, 0.45);
+  padding: 7px 0;
+  font-size: 15px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--hairline-soft);
 }
 
 .row:last-child {
@@ -44,34 +44,34 @@
 }
 
 .num {
-  color: var(--text-muted);
+  color: var(--mute);
 }
 
 .move {
   color: var(--ink);
 }
 
+/* Sale red is the only chromatic moment in the chrome — reserved for
+   check, checkmate, and errors. */
 .hot {
-  color: var(--garnet);
-  font-weight: 500;
+  color: var(--sale);
 }
 
 .empty {
-  color: var(--text-muted);
-  font-family: var(--font-notation);
-  font-size: 0.85rem;
+  color: var(--mute);
+  font-size: 14px;
   margin: 10px 0 4px;
 }
 
 .result {
-  margin: 10px 0 0;
-  font-family: var(--font-notation);
+  margin: 12px 0 0;
+  font-size: 15px;
   font-weight: 500;
   color: var(--ink);
   border-top: 1px solid var(--hairline);
-  padding-top: 10px;
+  padding-top: 12px;
 }
 
 .check {
-  color: var(--garnet);
+  color: var(--sale);
 }
