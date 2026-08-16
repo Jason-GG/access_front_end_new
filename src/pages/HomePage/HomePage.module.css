@@ -1,0 +1,105 @@
+.hero {
+  background: var(--canvas);
+  padding: 96px 0 88px;
+  text-align: center;
+}
+
+.headline {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  max-width: 18ch;
+  margin: 0 auto 0.5em;
+}
+
+.lead {
+  max-width: 56ch;
+  margin: 0 auto 2.2em;
+  color: var(--text-muted);
+  font-size: 1.08rem;
+}
+
+.ctaRow {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.featureBand {
+  text-align: center;
+}
+
+.featureHeading {
+  margin-bottom: 1.6em;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  text-align: left;
+}
+
+.feature {
+  border: 1px solid var(--hairline-dark);
+  border-radius: var(--radius-card);
+  padding: 28px;
+  background: rgba(36, 24, 14, 0.45);
+}
+
+.featureGlyph {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--accent-gold);
+  border-radius: 50%;
+  color: var(--accent-gold);
+  font-size: 1.6rem;
+  margin-bottom: 18px;
+}
+
+.featureTitle {
+  margin-bottom: 0.4em;
+}
+
+.featureBody {
+  opacity: 0.8;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.newsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.moreRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.donateRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.donateBody {
+  color: var(--text-muted);
+  max-width: 56ch;
+}
+
+@media (max-width: 860px) {
+  .featureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 64px 0;
+  }
+}

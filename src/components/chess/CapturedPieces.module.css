@@ -1,0 +1,41 @@
+.panel {
+  background: var(--canvas-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 14px;
+}
+
+.title {
+  margin: 0 0 10px;
+  font-family: var(--font-notation);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.label {
+  flex: 0 0 92px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.glyphs {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--ink);
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.glyphsBlack {
+  color: var(--ink);
+}

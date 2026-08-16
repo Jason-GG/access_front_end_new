@@ -1,0 +1,19 @@
+.hero {
+  background: var(--canvas);
+  padding: 64px 0 48px;
+}
+
+.title {
+  font-size: 2.4rem;
+  margin-bottom: 0.4em;
+}
+
+.lead {
+  max-width: 62ch;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.feedBand {
+  border-top: 1px solid var(--hairline);
+}

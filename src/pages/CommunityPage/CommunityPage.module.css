@@ -1,0 +1,133 @@
+.hero {
+  background: var(--canvas);
+  padding: 64px 0 48px;
+}
+
+.title {
+  font-size: 2.4rem;
+  margin-bottom: 0.4em;
+}
+
+.lead {
+  max-width: 62ch;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.board {
+  border-top: 1px solid var(--hairline);
+}
+
+.composer {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-top: 3px solid var(--accent-gold);
+  border-radius: var(--radius-card);
+  padding: 22px;
+  margin-bottom: 28px;
+}
+
+.composerLabel {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.composerInput {
+  width: 100%;
+  resize: vertical;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
+.composerInput:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+}
+
+.composerFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.counter {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.posted {
+  color: var(--felt-green);
+  font-size: 0.88rem;
+  margin: 12px 0 0;
+}
+
+.feed {
+  display: grid;
+  gap: 18px;
+}
+
+.post {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 22px;
+}
+
+.postMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.handle {
+  color: var(--ink);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.time {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.postBody {
+  color: var(--ink);
+  font-size: 0.98rem;
+  margin-bottom: 14px;
+}
+
+.postFooter {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--hairline);
+  padding-top: 12px;
+}
+
+.replyCount {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.replyLink {
+  background: none;
+  border: none;
+  color: var(--accent-gold);
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 0;
+}
+
+.replyLink:hover {
+  color: var(--accent-gold-hover);
+}

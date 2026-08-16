@@ -1,0 +1,46 @@
+.panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.clock {
+  background: var(--canvas-dim);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  transition: border-color 160ms ease;
+}
+
+.clockActive {
+  border-color: var(--accent-gold);
+}
+
+.clockLabel {
+  font-family: var(--font-notation);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.clockTime {
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin-left: auto;
+}
+
+/* Felt-green dot: the "your turn" signal — used only here and for online states. */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--felt-green);
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}

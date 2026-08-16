@@ -1,0 +1,78 @@
+.hero {
+  background: var(--canvas);
+  padding: 64px 0 48px;
+}
+
+.title {
+  font-size: 2.4rem;
+  margin-bottom: 0.4em;
+}
+
+.lead {
+  max-width: 62ch;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.listBand {
+  border-top: 1px solid var(--hairline);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-gold);
+}
+
+.difficulty {
+  align-self: flex-start;
+  background: var(--felt-green);
+  color: var(--text-on-dark);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.cardTitle {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.cardBody {
+  color: var(--text-muted);
+  font-size: 0.94rem;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--hairline);
+  padding-top: 12px;
+}
+
+.openLesson {
+  color: var(--accent-gold);
+}

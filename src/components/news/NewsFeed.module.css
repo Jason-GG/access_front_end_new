@@ -1,0 +1,29 @@
+.feed {
+  display: grid;
+  gap: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.state {
+  text-align: center;
+  padding: 48px 0;
+  color: var(--text-muted);
+}
+
+.retry {
+  background: none;
+  border: 1px solid var(--accent-gold);
+  color: var(--accent-gold);
+  border-radius: var(--radius-pill);
+  padding: 8px 20px;
+  font-weight: 600;
+}
+
+.retry:hover {
+  background: rgba(184, 134, 59, 0.1);
+}

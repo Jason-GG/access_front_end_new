@@ -1,0 +1,165 @@
+/* ------------------------------------------------------------------
+   Access Chess — "Tournament Hall" design tokens
+   Walnut, ivory, brass, felt. One gold accent for interaction.
+   ------------------------------------------------------------------ */
+:root {
+  --ink: #1b140f;
+  --canvas: #faf6ee;
+  --canvas-dim: #f1e9d8;
+  --board-dark: #3c2a1a;
+  --board-deep: #24180e;
+  --accent-gold: #b8863b;
+  --accent-gold-hover: #a5762f;
+  --felt-green: #2f4a3d;
+  --garnet: #7a2e2e;
+  --hairline: #d9c8a0;
+  --hairline-dark: #4a3624;
+  --text-muted: #6b5d4a;
+  --text-on-dark: #f1e9d8;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-notation: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-card: 3px;
+  --radius-pill: 999px;
+  --page-max: 1120px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 0.5em;
+  color: var(--ink);
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+a {
+  color: var(--accent-gold);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-gold-hover);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--accent-gold);
+  color: var(--text-on-dark);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+   Utilities
+   ------------------------------------------------------------------ */
+.container {
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* The signature type: any chess data — usernames, clocks, moves,
+   ratings, datelines — is set in notation face everywhere. */
+.notation {
+  font-family: var(--font-notation);
+  font-size: 0.9em;
+  letter-spacing: 0.01em;
+}
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+/* Alternating ivory/walnut section bands — the slow light/dark pulse. */
+.band {
+  padding: 88px 0;
+}
+
+.band--canvas {
+  background: var(--canvas);
+}
+
+.band--dim {
+  background: var(--canvas-dim);
+}
+
+.band--dark {
+  background: var(--board-dark);
+  color: var(--text-on-dark);
+}
+
+.band--dark h1,
+.band--dark h2,
+.band--dark h3 {
+  color: var(--text-on-dark);
+}
+
+.band--dark p {
+  color: var(--text-on-dark);
+}
+
+.eyebrow {
+  font-family: var(--font-notation);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  color: var(--accent-gold);
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 720px) {
+  .band {
+    padding: 56px 0;
+  }
+}

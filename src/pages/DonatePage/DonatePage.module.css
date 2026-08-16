@@ -1,0 +1,195 @@
+.hero {
+  background: var(--canvas);
+  padding: 64px 0 48px;
+}
+
+.title {
+  font-size: 2.4rem;
+  margin-bottom: 0.4em;
+}
+
+.lead {
+  max-width: 62ch;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+}
+
+.giveBand {
+  border-top: 1px solid var(--hairline);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 440px) 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-top: 3px solid var(--accent-gold);
+  border-radius: var(--radius-card);
+  padding: 30px;
+}
+
+.cardTitle {
+  font-size: 1.3rem;
+  margin-bottom: 18px;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.preset {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 12px 0;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: var(--font-notation);
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.preset:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.presetActive {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: var(--text-on-dark);
+}
+
+.presetActive:hover {
+  color: var(--text-on-dark);
+}
+
+.customField {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.customLabel {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.customInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  padding: 6px 2px;
+  font-family: var(--font-notation);
+}
+
+.customInput:focus {
+  outline: none;
+  border-bottom-color: var(--accent-gold);
+}
+
+.donateButton {
+  width: 100%;
+}
+
+.paymentRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.paymentButton {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  padding: 9px 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.paymentButton:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.note {
+  margin: 14px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.usesTitle {
+  font-size: 1.8rem;
+  margin-bottom: 1em;
+}
+
+.usesList {
+  display: grid;
+  gap: 18px;
+}
+
+.use {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 20px;
+}
+
+.useGlyph {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent-gold);
+  border-radius: 50%;
+  color: var(--accent-gold);
+  font-size: 1.3rem;
+}
+
+.useTitle {
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+
+.useBody {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.modalLine {
+  margin-bottom: 8px;
+}
+
+.modalBody {
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.modalButton {
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

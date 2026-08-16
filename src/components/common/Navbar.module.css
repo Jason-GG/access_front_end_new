@@ -1,0 +1,125 @@
+.nav {
+  background: var(--board-dark);
+  border-bottom: 2px solid var(--hairline-dark);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-on-dark);
+  text-decoration: none;
+  margin-right: auto;
+}
+
+.brand:hover {
+  color: var(--text-on-dark);
+}
+
+.mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+
+.links {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.link {
+  color: var(--text-on-dark);
+  opacity: 0.82;
+  font-size: 0.92rem;
+  padding: 8px 12px;
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+
+.link:hover {
+  opacity: 1;
+  color: var(--text-on-dark);
+}
+
+.linkActive {
+  opacity: 1;
+  color: var(--accent-gold);
+  border-bottom-color: var(--accent-gold);
+}
+
+.auth {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.handle {
+  color: var(--text-on-dark);
+  font-size: 0.85rem;
+  border: 1px solid var(--hairline-dark);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+}
+
+.authLink {
+  color: var(--text-on-dark);
+  opacity: 0.85;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.authLink:hover {
+  color: var(--accent-gold);
+  opacity: 1;
+}
+
+.signupPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-gold);
+  color: var(--text-on-dark);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.signupPill:hover {
+  background: var(--accent-gold-hover);
+  color: var(--text-on-dark);
+}
+
+@media (max-width: 860px) {
+  .inner {
+    gap: 12px;
+  }
+
+  .links {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}

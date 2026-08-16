@@ -1,0 +1,37 @@
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-top: 3px solid var(--accent-gold);
+  border-radius: var(--radius-card);
+  padding: 36px 32px;
+}
+
+.title {
+  font-size: 1.7rem;
+  margin-bottom: 1.2em;
+}
+
+.submit {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.formError {
+  color: var(--garnet);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+}
+
+.switch {
+  margin: 22px 0 6px;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--text-muted);
+}
+
+.note {
+  margin: 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

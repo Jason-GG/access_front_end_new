@@ -1,0 +1,16 @@
+.page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  background: var(--canvas);
+}
+
+.title {
+  font-size: 2rem;
+}
+
+.body {
+  color: var(--text-muted);
+  margin-bottom: 2em;
+}

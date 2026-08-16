@@ -1,0 +1,68 @@
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.cardFeatured {
+  background: var(--board-dark);
+  border-color: var(--hairline-dark);
+}
+
+.cardFeatured .title {
+  color: var(--text-on-dark);
+}
+
+.cardFeatured .summary {
+  color: var(--text-on-dark);
+  opacity: 0.86;
+}
+
+.category {
+  font-family: var(--font-notation);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-gold);
+}
+
+.title {
+  font-size: 1.22rem;
+  margin: 0;
+}
+
+/* Small gold rule under the headline — a brass nameplate touch. */
+.rule {
+  width: 42px;
+  height: 2px;
+  background: var(--accent-gold);
+}
+
+.summary {
+  font-size: 0.95rem;
+  color: var(--ink);
+  opacity: 0.82;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  border-top: 1px solid var(--hairline);
+  padding-top: 12px;
+}
+
+.cardFeatured .meta {
+  color: var(--text-on-dark);
+  opacity: 0.72;
+  border-top-color: var(--hairline-dark);
+}

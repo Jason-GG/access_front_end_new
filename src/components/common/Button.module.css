@@ -1,0 +1,80 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease,
+    transform 120ms ease;
+  text-decoration: none;
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: var(--accent-gold);
+  color: var(--text-on-dark);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-gold-hover);
+  color: var(--text-on-dark);
+}
+
+.secondary {
+  background: transparent;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.secondary:hover:not(:disabled) {
+  background: rgba(184, 134, 59, 0.1);
+}
+
+.secondaryDark {
+  background: transparent;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.secondaryDark:hover:not(:disabled) {
+  background: rgba(184, 134, 59, 0.18);
+  color: var(--accent-gold);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--accent-gold);
+}
+
+.sm {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+.md {
+  padding: 10px 22px;
+  font-size: 0.95rem;
+}
+
+.lg {
+  padding: 14px 30px;
+  font-size: 1.05rem;
+}
