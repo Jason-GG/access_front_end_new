@@ -3,8 +3,13 @@ import styles from './ChessBoard.module.css'
 
 // The board keeps traditional light/dark squares — the app palette never
 // touches the playing surface, only the chrome around it.
+// const LIGHT_SQUARE = '#f0d9b5'
+// const DARK_SQUARE = '#b58863'
+// const LIGHT_SQUARE = '#30dca6'
+// const DARK_SQUARE = '#63615f'
+
 const LIGHT_SQUARE = '#f0d9b5'
-const DARK_SQUARE = '#b58863'
+const DARK_SQUARE = '#63615f'
 
 export function ChessBoard({ fen, orientation, onPieceDrop, canDragPiece }) {
   return (
