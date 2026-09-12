@@ -77,7 +77,8 @@ function RoomView({ roomId, onLeave }) {
   }
 
   async function copyInvite() {
-    const link = `${window.location.origin}/play/${roomId}`
+    const base = `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, '')
+    const link = `${base}/#/play/${roomId}`
     try {
       await navigator.clipboard.writeText(link)
       setCopied(true)
