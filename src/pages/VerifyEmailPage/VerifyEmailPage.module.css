@@ -1,0 +1,82 @@
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-none);
+  padding: 36px 32px;
+}
+
+.title {
+  font-size: 32px;
+  text-transform: uppercase;
+  margin-bottom: 0.8em;
+}
+
+.desc {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--mute);
+  margin-bottom: 24px;
+}
+
+.desc strong {
+  color: var(--ink);
+}
+
+.submit {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.formError {
+  color: var(--sale);
+  font-size: 14px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: rgba(229, 62, 62, 0.08);
+  border-left: 3px solid var(--sale);
+}
+
+.formSuccess {
+  color: #1b7340;
+  font-size: 14px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: rgba(27, 115, 64, 0.08);
+  border-left: 3px solid #1b7340;
+  line-height: 1.5;
+}
+
+.resendSection {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--hairline);
+}
+
+.resendHeading {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mute);
+  margin-bottom: 12px;
+}
+
+.resendForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.switch {
+  margin: 24px 0 6px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.switch a {
+  color: var(--accent-pink);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+

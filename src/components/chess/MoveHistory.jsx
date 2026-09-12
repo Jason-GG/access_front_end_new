@@ -6,6 +6,12 @@ function isHot(san) {
   return Boolean(san && (san.endsWith('#') || san.endsWith('+')))
 }
 
+function sanOf(move) {
+  if (!move) return null
+  if (typeof move === 'string') return move
+  return move.san || move.move || null
+}
+
 export function MoveHistory({ history, status }) {
   const pairs = getMovePairings(history)
 
@@ -24,9 +30,9 @@ export function MoveHistory({ history, status }) {
           {pairs.map(([white, black], index) => (
             <li key={index} className={styles.row}>
               <span className={styles.num}>{index + 1}.</span>
-              <span className={cx(styles.move, isHot(white) && styles.hot)}>{white}</span>
-              <span className={cx(styles.move, isHot(black) && styles.hot)}>
-                {black || '—'}
+              <span className={cx(styles.move, isHot(sanOf(white)) && styles.hot)}>{sanOf(white)}</span>
+              <span className={cx(styles.move, isHot(sanOf(black)) && styles.hot)}>
+                {sanOf(black) || '—'}
               </span>
             </li>
           ))}

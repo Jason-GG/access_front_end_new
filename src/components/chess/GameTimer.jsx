@@ -13,17 +13,19 @@ function Clock({ label, seconds, active }) {
   )
 }
 
-export function GameTimer({ turn, running, resetKey }) {
+export function GameTimer({ turn, running, resetKey, times }) {
+  const controlled = Boolean(times && typeof times.white === 'number')
   const [white, setWhite] = useState(GAME.defaultTimeSeconds)
   const [black, setBlack] = useState(GAME.defaultTimeSeconds)
 
   useEffect(() => {
+    if (controlled) return
     setWhite(GAME.defaultTimeSeconds)
     setBlack(GAME.defaultTimeSeconds)
-  }, [resetKey])
+  }, [resetKey, controlled])
 
   useEffect(() => {
-    if (!running) return undefined
+    if (controlled || !running) return undefined
 
     const id = setInterval(() => {
       if (turn === 'w') {
@@ -34,12 +36,15 @@ export function GameTimer({ turn, running, resetKey }) {
     }, 1000)
 
     return () => clearInterval(id)
-  }, [running, turn, resetKey])
+  }, [controlled, running, turn, resetKey])
+
+  const whiteSeconds = controlled ? Math.ceil(times.white / 1000) : white
+  const blackSeconds = controlled ? Math.ceil(times.black / 1000) : black
 
   return (
     <div className={styles.panel}>
-      <Clock label="White" seconds={white} active={running && turn === 'w'} />
-      <Clock label="Black" seconds={black} active={running && turn === 'b'} />
+      <Clock label="White" seconds={whiteSeconds} active={running && turn === 'w'} />
+      <Clock label="Black" seconds={blackSeconds} active={running && turn === 'b'} />
     </div>
   )
 }

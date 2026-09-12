@@ -4,7 +4,7 @@ import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
 import { useAuth } from '../../hooks/useAuth'
 import { ROUTES } from '../../utils/constants'
-import { validateEmail, validatePassword } from '../../utils/validators'
+import { validatePassword } from '../../utils/validators'
 import styles from './LoginPage.module.css'
 
 export function LoginPage() {
@@ -12,10 +12,11 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
+  const [isUnverified, setIsUnverified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const from = location.state?.from?.pathname || ROUTES.play
@@ -23,20 +24,26 @@ export function LoginPage() {
   async function handleSubmit(event) {
     event.preventDefault()
 
+    const trimmedUsername = username.trim()
     const nextErrors = {
-      email: validateEmail(email),
+      username: !trimmedUsername ? 'Username is required.' : null,
       password: validatePassword(password),
     }
     setErrors(nextErrors)
-    if (nextErrors.email || nextErrors.password) return
+    if (nextErrors.username || nextErrors.password) return
 
     setSubmitting(true)
     setFormError(null)
+    setIsUnverified(false)
     try {
-      await login(email, password)
+      await login(trimmedUsername, password)
       navigate(from, { replace: true })
     } catch (err) {
-      setFormError(err.message)
+      if (err.isEmailNotVerified || err.status === 403) {
+        setIsUnverified(true)
+      } else {
+        setFormError(err.message || 'Incorrect username or password.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -46,15 +53,28 @@ export function LoginPage() {
     <section className={styles.card}>
       <p className="eyebrow">Member entrance</p>
       <h1 className={styles.title}>Welcome back</h1>
+
+      {isUnverified && (
+        <div className={styles.unverifiedNotice} role="alert">
+          <p>
+            <strong>Email Not Verified:</strong> You must verify your email address before signing
+            in.
+          </p>
+          <Link to={ROUTES.verifyEmail} className={styles.unverifiedLink}>
+            Enter verification token &rarr;
+          </Link>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} noValidate>
         <Input
-          id="login-email"
-          label="Email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          error={errors.email}
-          onChange={(event) => setEmail(event.target.value)}
+          id="login-username"
+          label="Username"
+          type="text"
+          autoComplete="username"
+          value={username}
+          error={errors.username}
+          onChange={(event) => setUsername(event.target.value)}
         />
         <Input
           id="login-password"

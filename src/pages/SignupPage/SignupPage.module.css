@@ -5,21 +5,123 @@
   padding: 36px 32px;
 }
 
+.stepsBar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.stepBadge {
+  flex: 1;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border: 1px solid var(--hairline);
+  background: var(--paper);
+  color: var(--mute);
+  transition: all 0.2s ease;
+}
+
+.stepBadgeActive {
+  background: var(--ink);
+  color: var(--canvas);
+  border-color: var(--ink);
+}
+
+.stepBadgeCompleted {
+  background: rgba(27, 115, 64, 0.1);
+  color: #1b7340;
+  border-color: #1b7340;
+}
+
 .title {
   font-size: 32px;
   text-transform: uppercase;
-  margin-bottom: 1.2em;
+  margin-bottom: 0.8em;
+}
+
+.desc {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--mute);
+  margin-bottom: 20px;
+}
+
+.desc strong {
+  color: var(--ink);
 }
 
 .submit {
   width: 100%;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .formError {
   color: var(--sale);
   font-size: 14px;
-  margin: 0 0 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: rgba(229, 62, 62, 0.08);
+  border-left: 3px solid var(--sale);
+}
+
+.formSuccess {
+  color: #1b7340;
+  font-size: 14px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: rgba(27, 115, 64, 0.08);
+  border-left: 3px solid #1b7340;
+  line-height: 1.5;
+}
+
+.infoBox {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.infoBox p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.infoBox p:last-child {
+  margin-bottom: 0;
+}
+
+.verifySection {
+  margin-top: 20px;
+}
+
+.resendRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  color: var(--accent-pink);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.resendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .switch {

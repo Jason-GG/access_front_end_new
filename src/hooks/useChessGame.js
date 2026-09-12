@@ -4,6 +4,7 @@ import {
   createGame,
   getCapturedPieces,
   getGameStatus,
+  makeMove,
   pickBotMove,
 } from '../services/chessService'
 
@@ -48,12 +49,12 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     [sync],
   )
 
-  const makeMove = useCallback(
+  const handleMove = useCallback(
     (sourceSquare, targetSquare) => {
       const game = gameRef.current
       if (game.isGameOver()) return false
 
-      const move = game.move({ from: sourceSquare, to: targetSquare, promotion: 'q' })
+      const move = makeMove(game, sourceSquare, targetSquare)
       if (!move) return false
 
       sync()
@@ -109,7 +110,7 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     captured,
     status,
     turn,
-    makeMove,
+    makeMove: handleMove,
     undo,
     reset,
     canUndo: history.length > 0,

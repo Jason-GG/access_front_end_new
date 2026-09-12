@@ -1,17 +1,21 @@
 export const ROUTES = {
   home: '/',
   play: '/play',
+  playRoom: '/play/:roomId',
   learn: '/learn',
   community: '/community',
   news: '/news',
   donate: '/donate',
   login: '/login',
   signup: '/signup',
+  verifyEmail: '/verify-email',
 }
 
 export const STORAGE_KEYS = {
   users: 'access-chess:users',
   session: 'access-chess:session',
+  accessToken: 'access-chess:access-token',
+  refreshToken: 'access-chess:refresh-token',
 }
 
 export const GAME = {

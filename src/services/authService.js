@@ -1,36 +1,43 @@
+import * as authApi from '../api/authApi'
 import { STORAGE_KEYS } from '../utils/constants'
 import { handleFromEmail } from '../utils/helpers'
-import { fakeReject, fakeRequest } from './api'
+import {
+  clearStoredTokens,
+  getStoredAccessToken,
+  getStoredRefreshToken,
+  storeTokens,
+} from './request'
 
-// Mock auth backed by localStorage so the app is fully usable today.
-// TODO(backend): replace with real JWT/Firebase auth — never store plain
-// passwords client-side in production.
-
-function readUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.users)) || []
-  } catch {
-    return []
+function normalizeUser(rawUser, extra = {}) {
+  if (!rawUser) return null
+  const username = rawUser.username || ''
+  const email = rawUser.email || extra.email || ''
+  return {
+    ...rawUser,
+    email,
+    username,
+    handle: username || (email ? handleFromEmail(email) : 'Player'),
   }
-}
-
-function writeUsers(users) {
-  localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users))
 }
 
 function readSession() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.session)) || null
+    const raw = localStorage.getItem(STORAGE_KEYS.session)
+    return raw ? JSON.parse(raw) : null
   } catch {
     return null
   }
 }
 
 function writeSession(user) {
-  if (user) {
-    localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(user))
-  } else {
-    localStorage.removeItem(STORAGE_KEYS.session)
+  try {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(user))
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.session)
+    }
+  } catch {
+    // ignore
   }
 }
 
@@ -38,39 +45,98 @@ export function getCurrentUser() {
   return readSession()
 }
 
-export async function signup({ email, password }) {
-  const normalized = email.trim().toLowerCase()
-  const users = readUsers()
-  if (users.some((user) => user.email === normalized)) {
-    return fakeReject('An account with this email already exists.')
+/**
+ * Validates current session against backend /users/me or /auth/me
+ */
+export async function fetchCurrentUser() {
+  const token = getStoredAccessToken()
+  if (!token) {
+    writeSession(null)
+    return null
   }
 
-  const user = {
-    id: globalThis.crypto?.randomUUID?.() ?? String(Date.now()),
-    email: normalized,
-    handle: handleFromEmail(normalized),
-    createdAt: new Date().toISOString(),
+  try {
+    // Try /users/me first to get email and stats
+    const response = await authApi.getUserProfileApi()
+    const user = normalizeUser(response.user)
+    writeSession(user)
+    return user
+  } catch {
+    try {
+      // Fallback to /auth/me
+      const meResponse = await authApi.getAuthMeApi()
+      const user = normalizeUser(meResponse.user, readSession() || {})
+      writeSession(user)
+      return user
+    } catch {
+      // Token is invalid/expired and couldn't be refreshed
+      clearStoredTokens()
+      writeSession(null)
+      return null
+    }
   }
-
-  writeUsers([...users, { ...user, password }])
-  writeSession(user)
-  return fakeRequest(user)
 }
 
-export async function login({ email, password }) {
-  const normalized = email.trim().toLowerCase()
-  const record = readUsers().find(
-    (user) => user.email === normalized && user.password === password,
-  )
-  if (!record) {
-    return fakeReject('Incorrect email or password.')
+/**
+ * Register a guest user. Queues verification email on the backend.
+ * Note: Does not log in or issue a token until email is verified.
+ */
+export async function signup({ username, email, password }) {
+  const response = await authApi.registerApi({ username, email, password })
+  return {
+    message: response.message || 'Registration successful. Please verify your email.',
+    user: normalizeUser(response.user, { email }),
   }
-
-  const { password: _password, ...safeUser } = record
-  writeSession(safeUser)
-  return fakeRequest(safeUser)
 }
 
-export function logout() {
+/**
+ * Log in with username and password. Issues JWT access & refresh tokens.
+ */
+export async function login({ username, password }) {
+  const session = await authApi.loginApi({ username, password })
+  storeTokens(session.accessToken, session.refreshToken)
+
+  let fullUser = normalizeUser(session.user)
+  try {
+    // Enrich with email & stats from profile if available
+    const profile = await authApi.getUserProfileApi()
+    if (profile?.user) {
+      fullUser = normalizeUser(profile.user)
+    }
+  } catch {
+    // ignore profile enrichment failure, session user is sufficient
+  }
+
+  writeSession(fullUser)
+  return fullUser
+}
+
+/**
+ * Verify email address with one-time verification token
+ */
+export async function verifyEmail(token) {
+  return authApi.verifyEmailApi({ token })
+}
+
+/**
+ * Resend verification email
+ */
+export async function resendVerification(email) {
+  return authApi.resendVerificationApi({ email })
+}
+
+/**
+ * Revoke backend session and remove local credentials
+ */
+export async function logout() {
+  const refreshToken = getStoredRefreshToken()
+  if (refreshToken) {
+    try {
+      await authApi.logoutApi({ refreshToken })
+    } catch {
+      // ignore network/auth errors during logout
+    }
+  }
+  clearStoredTokens()
   writeSession(null)
 }

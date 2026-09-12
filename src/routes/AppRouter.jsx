@@ -10,6 +10,7 @@ import { NewsPage } from '../pages/NewsPage/NewsPage'
 import { NotFoundPage } from '../pages/NotFoundPage/NotFoundPage'
 import { PlayPage } from '../pages/PlayPage/PlayPage'
 import { SignupPage } from '../pages/SignupPage/SignupPage'
+import { VerifyEmailPage } from '../pages/VerifyEmailPage/VerifyEmailPage'
 import { ROUTES } from '../utils/constants'
 import { ProtectedRoute } from './ProtectedRoute'
 
@@ -24,6 +25,7 @@ export function AppRouter() {
 
         <Route element={<ProtectedRoute />}>
           <Route path={ROUTES.play} element={<PlayPage />} />
+          <Route path={ROUTES.playRoom} element={<PlayPage />} />
           <Route path={ROUTES.community} element={<CommunityPage />} />
         </Route>
 
@@ -33,6 +35,7 @@ export function AppRouter() {
       <Route element={<AuthLayout />}>
         <Route path={ROUTES.login} element={<LoginPage />} />
         <Route path={ROUTES.signup} element={<SignupPage />} />
+        <Route path={ROUTES.verifyEmail} element={<VerifyEmailPage />} />
       </Route>
     </Routes>
   )

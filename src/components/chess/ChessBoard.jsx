@@ -28,9 +28,9 @@ export function ChessBoard({ fen, orientation, onPieceDrop, canDragPiece }) {
           },
           animationDurationInMs: 180,
           canDragPiece: ({ piece }) => canDragPiece(piece.pieceType),
-          onPieceDrop: ({ sourceSquare, targetSquare, piece }) => {
+          onPieceDrop: ({ sourceSquare, targetSquare }) => {
             if (!targetSquare) return false
-            return onPieceDrop(sourceSquare, targetSquare, piece.pieceType)
+            return onPieceDrop(sourceSquare, targetSquare)
           },
         }}
       />
