@@ -225,6 +225,7 @@ function RoomView({ roomId, onLeave }) {
                 orientation={game.orientation}
                 onPieceDrop={game.sendMove}
                 canDragPiece={canDragPiece}
+                lastMove={game.history[game.history.length - 1]}
               />
             )}
           </div>

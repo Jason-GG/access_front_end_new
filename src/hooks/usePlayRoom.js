@@ -407,9 +407,9 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
       clearInterval(id)
       window.removeEventListener('focus', poll)
     }
-  }, [enabled, roomId, room?.status, room?.members?.length, applySnapshot])
+  }, [enabled, roomId, room, applySnapshot])
 
-  const members = room?.members || []
+  const members = useMemo(() => room?.members || [], [room?.members])
   const gameStatus = room?.status || (roomId ? 'waiting' : 'idle')
   const result = room?.result || null
 
