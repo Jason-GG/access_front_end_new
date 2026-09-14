@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../utils/constants'
 
-const DEFAULT_API_BASE = import.meta.env.DEV ? '/api' : 'https://achess.wguan.dpdns.org'
+const DEFAULT_API_BASE = import.meta.env.DEV ? '/api' : 'https://achess-dev.wguan.dpdns.org'
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE
 
 export function getWebSocketBaseUrl() {
