@@ -15,8 +15,14 @@ export function listRooms({ status = 'waiting', limit = 20, cursor } = {}) {
   return httpClient.get(withQuery('/play/rooms', { status, limit, cursor }))
 }
 
-export function createRoom(gameId) {
-  return httpClient.post('/play/rooms', gameId ? { gameId } : {})
+export function createRoom(payload) {
+  const body =
+    typeof payload === 'string'
+      ? { gameId: payload }
+      : payload?.gameId
+        ? { gameId: payload.gameId }
+        : {}
+  return httpClient.post('/play/rooms', body)
 }
 
 export function joinRoom(id) {

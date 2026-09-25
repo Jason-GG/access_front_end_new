@@ -2,6 +2,7 @@ export const ROUTES = {
   home: '/',
   play: '/play',
   foxPlay: '/play/fox',
+  foxPlayRoom: '/play/fox/:roomId',
   playRoom: '/play/:roomId',
   learn: '/learn',
   community: '/community',

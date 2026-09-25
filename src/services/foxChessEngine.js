@@ -622,8 +622,9 @@ export class FoxChess {
     const legalMoves = this.moves({ square: from, verbose: true })
     const matched = legalMoves.find((m) => {
       if (m.to !== to) return false
-      if (promotion) {
-        return m.promotion === promotion
+      if (m.promotion) {
+        const targetPromo = promotion ? String(promotion).toLowerCase() : 'q'
+        return m.promotion === targetPromo
       }
       return true
     })

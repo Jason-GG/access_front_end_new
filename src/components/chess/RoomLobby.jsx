@@ -18,7 +18,13 @@ function timeControl(room) {
   return `${Math.round(ms / 60000)} min`
 }
 
-export function RoomLobby({ onEnterRoom }) {
+export function RoomLobby({
+  onEnterRoom,
+  title = 'Rooms waiting for a player',
+  eyebrow = 'Open challenges',
+  createLabel = 'Create a room',
+  emptyText,
+}) {
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -82,11 +88,11 @@ export function RoomLobby({ onEnterRoom }) {
     <section className={styles.panel}>
       <div className={styles.head}>
         <div>
-          <p className="eyebrow">Open challenges</p>
-          <h2 className={styles.title}>Rooms waiting for a player</h2>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2 className={styles.title}>{title}</h2>
         </div>
         <Button variant="primary" onClick={handleCreate} disabled={busy}>
-          {busy ? 'Working…' : 'Create a room'}
+          {busy ? 'Working…' : createLabel}
         </Button>
       </div>
 
@@ -100,7 +106,8 @@ export function RoomLobby({ onEnterRoom }) {
         <Loader label="Loading rooms" />
       ) : rooms.length === 0 ? (
         <p className={styles.empty}>
-          No open rooms right now. Create one and the next player who joins takes the black seat.
+          {emptyText ||
+            'No open rooms right now. Create one and the next player who joins takes the black seat.'}
         </p>
       ) : (
         <ul className={styles.list}>

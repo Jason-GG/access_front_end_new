@@ -182,6 +182,73 @@
   line-height: 1.5;
 }
 
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--hairline);
+  border-left: 4px solid var(--accent-pink);
+  border-radius: var(--radius-md);
+  background: var(--soft-cloud);
+  font-size: 14px;
+}
+
+.bannerWarn {
+  border-left-color: var(--info);
+}
+
+.bannerError {
+  border-left-color: var(--sale);
+  color: var(--sale);
+}
+
+.bannerSuccess {
+  border-left-color: var(--success);
+}
+
+.bannerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.waitingNote {
+  color: var(--mute);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.roomId {
+  font-family: var(--font-notation);
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline-soft);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  color: var(--ink);
+}
+
+.controlButton {
+  margin-left: auto;
+}
+
+.modalResult {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.modalBody {
+  color: var(--mute);
+  margin-bottom: 20px;
+}
+
+.modalButton {
+  width: 100%;
+}
+
 @media (max-width: 980px) {
   .grid {
     grid-template-columns: 1fr;

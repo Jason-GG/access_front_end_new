@@ -20,7 +20,6 @@ export function AppRouter() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
-        <Route path={ROUTES.foxPlay} element={<FoxPlayPage />} />
         <Route path={ROUTES.learn} element={<LearnPage />} />
         <Route path={ROUTES.news} element={<NewsPage />} />
         <Route path={ROUTES.donate} element={<DonatePage />} />
@@ -28,6 +27,8 @@ export function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route path={ROUTES.play} element={<PlayPage />} />
           <Route path={ROUTES.playRoom} element={<PlayPage />} />
+          <Route path={ROUTES.foxPlay} element={<FoxPlayPage />} />
+          <Route path={ROUTES.foxPlayRoom} element={<FoxPlayPage />} />
           <Route path={ROUTES.community} element={<CommunityPage />} />
         </Route>
 

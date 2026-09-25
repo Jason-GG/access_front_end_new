@@ -37,20 +37,22 @@ export function FoxChessBoard({
   // Map of legal destination squares for the currently selected square
   const legalMovesMap = useMemo(() => {
     if (!selectedSquare || !game) return {}
+    void lastMove
     const moves = game.moves({ square: selectedSquare, verbose: true })
     const map = {}
     for (const m of moves) {
       map[m.to] = m
     }
     return map
-  }, [selectedSquare, game])
+  }, [selectedSquare, game, lastMove])
 
   // King currently in check square
   const checkKingSquare = useMemo(() => {
+    void lastMove
     if (!game || !game.inCheck()) return null
     const king = game.findKing(game.turn())
     return king ? toSquare(king.f, king.r) : null
-  }, [game])
+  }, [game, lastMove])
 
   // Attempt move or open promotion dialog if applicable
   const tryMakeMove = useCallback(
