@@ -9,9 +9,15 @@ import styles from './HomePage.module.css'
 const FEATURES = [
   {
     glyph: '♞',
-    title: 'Play',
-    body: 'Sit across from the house bot or a clubmate. Every game keeps its score.',
+    title: 'Standard Chess',
+    body: 'Sit across from the house bot or a clubmate on the classic 8×8 board.',
     to: ROUTES.play,
+  },
+  {
+    glyph: '🦊',
+    title: 'Fox Chess (10×10)',
+    body: 'Experience the expanded battlefield featuring the Red-eared Fox and Normal Fox.',
+    to: ROUTES.foxPlay,
   },
   {
     glyph: '♟',
@@ -44,7 +50,10 @@ export function HomePage() {
           </p>
           <div className={styles.heroCtas}>
             <Button size="lg" variant="teal" onClick={() => navigate(ROUTES.play)}>
-              Play now
+              Play Standard (8×8)
+            </Button>
+            <Button size="lg" variant="primary" onClick={() => navigate(ROUTES.foxPlay)}>
+              Play Fox Chess (10×10)
             </Button>
             <Link to={ROUTES.learn} className={styles.heroLink}>
               Browse lessons
@@ -56,14 +65,18 @@ export function HomePage() {
       <section className={`band band--canvas ${styles.featureBand}`}>
         <div className="container">
           <p className="eyebrow">The hall</p>
-          <h2 className="section-heading">Three doors. One game.</h2>
+          <h2 className="section-heading">Four doors. Your board.</h2>
           <div className={styles.featureGrid}>
             {FEATURES.map((feature, index) => (
               <Link key={feature.title} to={feature.to} className={styles.feature}>
                 <span
                   className={cx(
                     styles.featureGlyph,
-                    index % 2 === 0 ? styles.glyphPink : styles.glyphTeal,
+                    index === 1
+                      ? styles.glyphOrange
+                      : index % 2 === 0
+                        ? styles.glyphPink
+                        : styles.glyphTeal,
                   )}
                   aria-hidden="true"
                 >

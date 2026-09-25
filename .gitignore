@@ -19,6 +19,8 @@ coverage
 *.local
 .env
 .env.*
+!.env.development
+!.env.production
 !.env.example
 
 # Editor directories and files

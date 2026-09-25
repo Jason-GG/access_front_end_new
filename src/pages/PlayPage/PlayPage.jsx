@@ -310,6 +310,14 @@ export function PlayPage() {
             <p className="eyebrow">The play room</p>
             <h1 className={styles.title}>Play</h1>
           </div>
+          <div className={styles.headerActions}>
+            <Button
+              variant="secondary"
+              onClick={() => navigate(ROUTES.foxPlay)}
+            >
+              Play Fox Chess (10×10)
+            </Button>
+          </div>
         </header>
         <RoomLobby onEnterRoom={(id) => navigate(`/play/${id}`)} />
       </div>

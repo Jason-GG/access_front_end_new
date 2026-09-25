@@ -1,6 +1,7 @@
 export const ROUTES = {
   home: '/',
   play: '/play',
+  foxPlay: '/play/fox',
   playRoom: '/play/:roomId',
   learn: '/learn',
   community: '/community',
@@ -28,14 +29,18 @@ export const PIECE_GLYPHS = {
   n: '♞',
   b: '♝',
   r: '♜',
+  rf: '🦊',
+  f: '🦊',
   q: '♛',
   k: '♚',
   P: '♙',
   N: '♘',
   B: '♗',
   R: '♖',
+  RF: '🦊',
+  F: '🦊',
   Q: '♕',
   K: '♔',
 }
 
-export const PIECE_VALUES = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }
+export const PIECE_VALUES = { p: 1, n: 3, b: 3, rf: 4, r: 5, f: 7, q: 9, k: 0 }

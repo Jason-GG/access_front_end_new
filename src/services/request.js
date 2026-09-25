@@ -1,6 +1,14 @@
 import { STORAGE_KEYS } from '../utils/constants'
 
-const DEFAULT_API_BASE = import.meta.env.DEV ? '/api' : 'https://achess-dev.wguan.dpdns.org'
+const DEV_HOST = 'https://achess-dev.wguan.dpdns.org'
+const PROD_HOST = 'https://achess.wguan.dpdns.org'
+
+const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
+const defaultRemoteHost = isProd ? PROD_HOST : DEV_HOST
+
+// In development, default to '/api' to leverage the Vite dev proxy (avoiding CORS issues).
+// In production (or if VITE_API_BASE_URL is explicitly set), uses the resolved host.
+const DEFAULT_API_BASE = import.meta.env.DEV ? '/api' : defaultRemoteHost
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE
 
 export function getWebSocketBaseUrl() {
@@ -12,7 +20,7 @@ export function getWebSocketBaseUrl() {
     return base.replace(/^http/i, 'ws')
   }
   if (import.meta.env.DEV) {
-    return 'wss://achess.wguan.dpdns.org'
+    return isProd ? 'wss://achess.wguan.dpdns.org' : 'wss://achess-dev.wguan.dpdns.org'
   }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}${base}`

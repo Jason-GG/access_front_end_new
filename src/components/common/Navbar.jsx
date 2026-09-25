@@ -9,6 +9,7 @@ import styles from './Navbar.module.css'
 
 const NAV_LINKS = [
   { to: ROUTES.play, label: 'Play' },
+  { to: ROUTES.foxPlay, label: 'Fox Chess' },
   { to: ROUTES.learn, label: 'Learn' },
   { to: ROUTES.community, label: 'Community' },
   { to: ROUTES.news, label: 'News' },

@@ -64,7 +64,7 @@
 
 .featureGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px;
   margin-top: 32px;
 }
@@ -104,6 +104,10 @@
 
 .glyphTeal {
   background: var(--accent-teal-soft);
+}
+
+.glyphOrange {
+  background: rgba(255, 138, 101, 0.2);
 }
 
 .featureTitle {

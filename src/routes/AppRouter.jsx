@@ -3,6 +3,7 @@ import { AppLayout } from '../layouts/AppLayout'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { CommunityPage } from '../pages/CommunityPage/CommunityPage'
 import { DonatePage } from '../pages/DonatePage/DonatePage'
+import { FoxPlayPage } from '../pages/FoxPlayPage/FoxPlayPage'
 import { HomePage } from '../pages/HomePage/HomePage'
 import { LearnPage } from '../pages/LearnPage/LearnPage'
 import { LoginPage } from '../pages/LoginPage/LoginPage'
@@ -19,6 +20,7 @@ export function AppRouter() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
+        <Route path={ROUTES.foxPlay} element={<FoxPlayPage />} />
         <Route path={ROUTES.learn} element={<LearnPage />} />
         <Route path={ROUTES.news} element={<NewsPage />} />
         <Route path={ROUTES.donate} element={<DonatePage />} />
