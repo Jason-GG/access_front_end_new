@@ -14,8 +14,8 @@ const STAUNTON_GROUP_STYLE = {
 
 // ---------------------------------------------------------------------------
 // White Red-eared Fox (rf):
-// Sculpted Staunton masterpiece with fluid organic curves, alert pointed ears,
-// silky cheek ruffs, delicate almond eyes with white glints, flowing whiskers,
+// Sculpted Staunton fox with authentic vulpine anatomy: tall pointed alert ears,
+// flared cheek ruffs, slender tapering V-wedge muzzle, cunning slanted almond eyes,
 // and brilliant ruby-crimson inner-ear inlays.
 // ---------------------------------------------------------------------------
 export function WhiteRedEaredFox({ svgStyle }) {
@@ -38,87 +38,111 @@ export function WhiteRedEaredFox({ svgStyle }) {
           style={{ fill: '#ffffff', stroke: '#000000' }}
         />
 
-        {/* Chest & Collar Ruffle flowing into base */}
+        {/* Sculpted Fox Bust: Tall alert ears, flared cheek ruffs, tapering into base */}
         <path
-          d="M 14,33 C 14.5,30 18,28.5 22.5,28.5 C 27,28.5 30.5,30 31,33"
-          style={{ fill: '#ffffff', stroke: '#000000' }}
-        />
-
-        {/* Sculpted Fox Silhouette: Curving alert ears and silky flowing cheek ruffs */}
-        <path
-          d="M 19,13 
-             C 17,9.5 14.5,6.5 12.5,4 
-             C 11.8,4 11.2,4.8 11,5.8 
-             C 10.5,9 9,13 8,15.5 
-             C 6.5,17.5 5.5,19.5 5.5,21.5 
-             C 5.5,22.8 7,23 8,23 
-             C 6.2,24.5 5.8,26 6.5,27 
-             C 7.5,28 10,28.5 12,28.5 
-             C 15,30.2 19,31.5 22.5,31.5 
-             C 26,31.5 30,30.2 33,28.5 
-             C 35,28.5 37.5,28 38.5,27 
-             C 39.2,26 38.8,24.5 37,23 
-             C 38,23 39.5,22.8 39.5,21.5 
-             C 39.5,19.5 38.5,17.5 37,15.5 
-             C 36,13 34.5,9 34,5.8 
-             C 33.8,4.8 33.2,4 32.5,4 
-             C 30.5,6.5 28,9.5 26,13 
-             C 24.5,12 20.5,12 19,13 Z"
+          d="M 22.5,12.5
+             C 20.5,12.0 18.2,11.2 17.2,10.5
+             L 10.5,3.0
+             C 9.8,3.5 9.0,5.2 8.8,7.0
+             C 8.2,10.0 7.6,12.5 7.0,14.0
+             C 5.8,15.5 4.5,17.2 4.0,18.8
+             C 3.8,19.5 4.2,20.0 5.2,19.8
+             C 6.8,19.5 7.8,19.2 8.5,20.2
+             C 7.0,21.8 5.2,23.5 5.0,24.5
+             C 4.8,25.3 5.5,25.5 6.8,25.2
+             C 8.2,24.8 9.5,24.2 10.5,25.5
+             C 11.8,27.2 12.8,29.8 13.5,33.0
+             L 31.5,33.0
+             C 32.2,29.8 33.2,27.2 34.5,25.5
+             C 35.5,24.2 36.8,24.8 38.2,25.2
+             C 39.5,25.5 40.2,25.3 40.0,24.5
+             C 39.8,23.5 38.0,21.8 36.5,20.2
+             C 37.2,19.2 38.2,19.5 39.8,19.8
+             C 40.8,20.0 41.2,19.5 41.0,18.8
+             C 40.5,17.2 39.0,15.5 37.8,14.0
+             C 37.2,12.5 36.5,10.0 36.0,7.0
+             C 35.8,5.2 35.0,3.5 34.5,3.0
+             L 27.8,10.5
+             C 26.8,11.2 24.5,12.0 22.5,12.5 Z"
           style={{ fill: '#ffffff', stroke: '#000000', strokeWidth: '1.5' }}
         />
 
-        {/* Red-Eared Fox: Jewel Crimson Inner Ears */}
+        {/* Red-Eared Fox: Ruby Crimson Inner Ears */}
         <path
-          d="M 13,6 C 11.5,9.5 10,13 10.5,15 C 11.5,15.5 14,15 16,13.5 C 15.5,11 14.5,8.5 13,6 Z"
-          style={{ fill: '#d32f2f', stroke: '#b71c1c', strokeWidth: '0.8' }}
+          d="M 11.0,5.2 C 9.8,8.5 9.0,12.0 9.8,13.8 C 10.8,14.5 13.5,13.8 15.5,11.8 C 14.8,9.5 13.0,7.0 11.0,5.2 Z"
+          style={{ fill: '#d32f2f', stroke: '#b71c1c', strokeWidth: '0.9' }}
         />
         <path
-          d="M 32,6 C 30.5,8.5 29.5,11 29,13.5 C 31,15 33.5,15.5 34.5,15 C 35,13 33.5,9.5 32,6 Z"
-          style={{ fill: '#d32f2f', stroke: '#b71c1c', strokeWidth: '0.8' }}
-        />
-
-        {/* Curved Facial Contour / Snout Bridge */}
-        <path
-          d="M 16.5,19 C 18.5,22 20.5,24.5 22.5,25.5 C 24.5,24.5 26.5,22 28.5,19"
-          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.2' }}
+          d="M 34.0,5.2 C 35.2,8.5 36.0,12.0 35.2,13.8 C 34.2,14.5 31.5,13.8 29.5,11.8 C 30.2,9.5 32.0,7.0 34.0,5.2 Z"
+          style={{ fill: '#d32f2f', stroke: '#b71c1c', strokeWidth: '0.9' }}
         />
 
-        {/* Noble Almond Fox Eyes with Life Glint */}
+        {/* Forehead Vulpine Blaze */}
         <path
-          d="M 14,19 C 15.5,17.5 18,18 19,19.5 C 18,20.8 15.5,20.5 14,19 Z"
+          d="M 22.5,12.5 L 22.5,16.5"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.1' }}
+        />
+
+        {/* Cunning Slanted Almond Fox Eyes with Life Glint */}
+        <path
+          d="M 13.0,17.2 C 14.2,16.0 16.8,16.8 18.2,19.2 C 16.5,19.8 14.5,19.2 13.0,17.2 Z"
           style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
         />
-        <circle cx="16.2" cy="19.1" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
-
+        <circle cx="15.8" cy="18.0" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
         <path
-          d="M 31,19 C 29.5,17.5 27,18 26,19.5 C 27,20.8 29.5,20.5 31,19 Z"
-          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
-        />
-        <circle cx="28.8" cy="19.1" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
-
-        {/* Delicate Heart-shaped Button Nose & Mouth */}
-        <path
-          d="M 21.3,25.8 C 21.3,25.3 23.7,25.3 23.7,25.8 C 23.7,26.8 22.5,27.6 22.5,27.6 C 22.5,27.6 21.3,26.8 21.3,25.8 Z"
-          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
-        />
-        <path
-          d="M 22.5,27.6 L 22.5,28.8 M 21.2,28.8 C 22,29.3 23,29.3 23.8,28.8"
+          d="M 13.0,17.2 C 11.5,17.0 10.2,17.5 9.2,18.2"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
         />
 
-        {/* Flowing Curved Whisker Arcs */}
         <path
-          d="M 15,25 C 12,24.5 9,25 7,26 M 15.5,26.8 C 13,27 10.5,28 8.5,29.5"
-          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
+          d="M 32.0,17.2 C 30.8,16.0 28.2,16.8 26.8,19.2 C 28.5,19.8 30.5,19.2 32.0,17.2 Z"
+          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
         />
+        <circle cx="29.2" cy="18.0" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
         <path
-          d="M 30,25 C 33,24.5 36,25 38,26 M 29.5,26.8 C 32,27 34.5,28 36.5,29.5"
+          d="M 32.0,17.2 C 33.5,17.0 34.8,17.5 35.8,18.2"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
         />
 
-        {/* Graceful Forehead Blaze */}
+        {/* Long Slender Muzzle Bridge (Tapering from eyes to nose) */}
         <path
-          d="M 22.5,13.5 C 22.2,15.5 22.2,17.5 22.5,19"
+          d="M 18.2,19.2 C 19.5,22.0 20.8,24.8 21.0,26.5"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.1' }}
+        />
+        <path
+          d="M 26.8,19.2 C 25.5,22.0 24.2,24.8 24.0,26.5"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.1' }}
+        />
+
+        {/* Cheek-to-Snout Mask Contours */}
+        <path
+          d="M 10.5,24.5 C 13.5,23.5 17.0,24.8 19.5,26.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
+        />
+        <path
+          d="M 34.5,24.5 C 31.5,23.5 28.0,24.8 25.5,26.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
+        />
+
+        {/* Crisp Triangular Fox Nose Pad */}
+        <path
+          d="M 21.0,26.5 C 21.0,26.0 24.0,26.0 24.0,26.5 C 24.0,27.5 22.8,28.4 22.5,28.4 C 22.2,28.4 21.0,27.5 21.0,26.5 Z"
+          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.5' }}
+        />
+
+        {/* Vulpine Mouth & Tapered Chin */}
+        <path
+          d="M 22.5,28.4 L 22.5,29.3 M 20.8,29.8 C 21.8,30.2 23.2,30.2 24.2,29.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.9' }}
+        />
+        <path
+          d="M 20.0,30.8 C 21.2,31.5 23.8,31.5 25.0,30.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.0' }}
+        />
+
+        {/* Flowing Chest Fur Bib */}
+        <path
+          d="M 16.5,33.0 C 17.5,31.2 19.8,30.5 22.5,30.5 C 25.2,30.5 27.5,31.2 28.5,33.0"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.9' }}
         />
       </g>
@@ -129,7 +153,7 @@ export function WhiteRedEaredFox({ svgStyle }) {
 // ---------------------------------------------------------------------------
 // Black Red-eared Fox (rf):
 // Regal midnight charcoal bust with glowing ruby inner ears, luminous white
-// contour lines, radiant almond eyes, and silky whiskers.
+// contour lines, radiant almond eyes, and sharp vulpine muzzle.
 // ---------------------------------------------------------------------------
 export function BlackRedEaredFox({ svgStyle }) {
   return (
@@ -156,97 +180,138 @@ export function BlackRedEaredFox({ svgStyle }) {
           style={{ stroke: '#ffffff', strokeWidth: '1' }}
         />
 
-        {/* Chest & Collar Pedestal */}
+        {/* Sculpted Fox Bust Silhouette */}
         <path
-          d="M 14,33 C 14.5,30 18,28.5 22.5,28.5 C 27,28.5 30.5,30 31,33"
-          style={{ fill: '#000000', stroke: '#000000' }}
-        />
-        <path
-          d="M 15,32 C 16.5,30 19,29 22.5,29 C 26,29 28.5,30 30,32"
-          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1' }}
-        />
-
-        {/* Sculpted Fox Silhouette */}
-        <path
-          d="M 19,13 
-             C 17,9.5 14.5,6.5 12.5,4 
-             C 11.8,4 11.2,4.8 11,5.8 
-             C 10.5,9 9,13 8,15.5 
-             C 6.5,17.5 5.5,19.5 5.5,21.5 
-             C 5.5,22.8 7,23 8,23 
-             C 6.2,24.5 5.8,26 6.5,27 
-             C 7.5,28 10,28.5 12,28.5 
-             C 15,30.2 19,31.5 22.5,31.5 
-             C 26,31.5 30,30.2 33,28.5 
-             C 35,28.5 37.5,28 38.5,27 
-             C 39.2,26 38.8,24.5 37,23 
-             C 38,23 39.5,22.8 39.5,21.5 
-             C 39.5,19.5 38.5,17.5 37,15.5 
-             C 36,13 34.5,9 34,5.8 
-             C 33.8,4.8 33.2,4 32.5,4 
-             C 30.5,6.5 28,9.5 26,13 
-             C 24.5,12 20.5,12 19,13 Z"
+          d="M 22.5,12.5
+             C 20.5,12.0 18.2,11.2 17.2,10.5
+             L 10.5,3.0
+             C 9.8,3.5 9.0,5.2 8.8,7.0
+             C 8.2,10.0 7.6,12.5 7.0,14.0
+             C 5.8,15.5 4.5,17.2 4.0,18.8
+             C 3.8,19.5 4.2,20.0 5.2,19.8
+             C 6.8,19.5 7.8,19.2 8.5,20.2
+             C 7.0,21.8 5.2,23.5 5.0,24.5
+             C 4.8,25.3 5.5,25.5 6.8,25.2
+             C 8.2,24.8 9.5,24.2 10.5,25.5
+             C 11.8,27.2 12.8,29.8 13.5,33.0
+             L 31.5,33.0
+             C 32.2,29.8 33.2,27.2 34.5,25.5
+             C 35.5,24.2 36.8,24.8 38.2,25.2
+             C 39.5,25.5 40.2,25.3 40.0,24.5
+             C 39.8,23.5 38.0,21.8 36.5,20.2
+             C 37.2,19.2 38.2,19.5 39.8,19.8
+             C 40.8,20.0 41.2,19.5 41.0,18.8
+             C 40.5,17.2 39.0,15.5 37.8,14.0
+             C 37.2,12.5 36.5,10.0 36.0,7.0
+             C 35.8,5.2 35.0,3.5 34.5,3.0
+             L 27.8,10.5
+             C 26.8,11.2 24.5,12.0 22.5,12.5 Z"
           style={{ fill: '#000000', stroke: '#000000', strokeWidth: '1.5' }}
         />
 
         {/* Outer White Contour for High-Definition Contrast */}
         <path
-          d="M 12.5,4 C 11.8,4 11.2,4.8 11,5.8 C 10.5,9 9,13 8,15.5 C 6.5,17.5 5.5,19.5 5.5,21.5 C 5.5,22.8 7,23 8,23 C 6.2,24.5 5.8,26 6.5,27 C 7.5,28 10,28.5 12,28.5 C 15,30.2 19,31.5 22.5,31.5 C 26,31.5 30,30.2 33,28.5 C 35,28.5 37.5,28 38.5,27 C 39.2,26 38.8,24.5 37,23 C 38,23 39.5,22.8 39.5,21.5 C 39.5,19.5 38.5,17.5 37,15.5 C 36,13 34.5,9 34,5.8 C 33.8,4.8 33.2,4 32.5,4"
+          d="M 17.2,10.5
+             L 10.5,3.0
+             C 9.8,3.5 9.0,5.2 8.8,7.0
+             C 8.2,10.0 7.6,12.5 7.0,14.0
+             C 5.8,15.5 4.5,17.2 4.0,18.8
+             C 3.8,19.5 4.2,20.0 5.2,19.8
+             C 6.8,19.5 7.8,19.2 8.5,20.2
+             C 7.0,21.8 5.2,23.5 5.0,24.5
+             C 4.8,25.3 5.5,25.5 6.8,25.2
+             C 8.2,24.8 9.5,24.2 10.5,25.5
+             C 11.8,27.2 12.8,29.8 13.5,33.0
+             M 31.5,33.0
+             C 32.2,29.8 33.2,27.2 34.5,25.5
+             C 35.5,24.2 36.8,24.8 38.2,25.2
+             C 39.5,25.5 40.2,25.3 40.0,24.5
+             C 39.8,23.5 38.0,21.8 36.5,20.2
+             C 37.2,19.2 38.2,19.5 39.8,19.8
+             C 40.8,20.0 41.2,19.5 41.0,18.8
+             C 40.5,17.2 39.0,15.5 37.8,14.0
+             C 37.2,12.5 36.5,10.0 36.0,7.0
+             C 35.8,5.2 35.0,3.5 34.5,3.0
+             L 27.8,10.5"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.2' }}
         />
 
         {/* Glowing Ruby Crimson Inner Ears with White Edge */}
         <path
-          d="M 13,6 C 11.5,9.5 10,13 10.5,15 C 11.5,15.5 14,15 16,13.5 C 15.5,11 14.5,8.5 13,6 Z"
+          d="M 11.0,5.2 C 9.8,8.5 9.0,12.0 9.8,13.8 C 10.8,14.5 13.5,13.8 15.5,11.8 C 14.8,9.5 13.0,7.0 11.0,5.2 Z"
           style={{ fill: '#ef5350', stroke: '#ffffff', strokeWidth: '1' }}
         />
         <path
-          d="M 32,6 C 30.5,8.5 29.5,11 29,13.5 C 31,15 33.5,15.5 34.5,15 C 35,13 33.5,9.5 32,6 Z"
+          d="M 34.0,5.2 C 35.2,8.5 36.0,12.0 35.2,13.8 C 34.2,14.5 31.5,13.8 29.5,11.8 C 30.2,9.5 32.0,7.0 34.0,5.2 Z"
           style={{ fill: '#ef5350', stroke: '#ffffff', strokeWidth: '1' }}
         />
 
-        {/* Curved Facial Contour / Snout Bridge */}
+        {/* Forehead Blaze in White */}
         <path
-          d="M 16.5,19 C 18.5,22 20.5,24.5 22.5,25.5 C 24.5,24.5 26.5,22 28.5,19"
-          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.2' }}
+          d="M 22.5,12.5 L 22.5,16.5"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.1' }}
         />
 
-        {/* Luminous Almond Fox Eyes with Ebony Pupils */}
+        {/* Luminous Almond Fox Eyes with Ebony Pupil */}
         <path
-          d="M 14,19 C 15.5,17.5 18,18 19,19.5 C 18,20.8 15.5,20.5 14,19 Z"
+          d="M 13.0,17.2 C 14.2,16.0 16.8,16.8 18.2,19.2 C 16.5,19.8 14.5,19.2 13.0,17.2 Z"
           style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
         />
-        <circle cx="16.5" cy="19.2" r="0.7" style={{ fill: '#000000', stroke: 'none' }} />
-
+        <circle cx="15.8" cy="18.0" r="0.65" style={{ fill: '#000000', stroke: 'none' }} />
         <path
-          d="M 31,19 C 29.5,17.5 27,18 26,19.5 C 27,20.8 29.5,20.5 31,19 Z"
-          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
-        />
-        <circle cx="28.5" cy="19.2" r="0.7" style={{ fill: '#000000', stroke: 'none' }} />
-
-        {/* Delicate White Button Nose & Mouth */}
-        <path
-          d="M 21.3,25.8 C 21.3,25.3 23.7,25.3 23.7,25.8 C 23.7,26.8 22.5,27.6 22.5,27.6 C 22.5,27.6 21.3,26.8 21.3,25.8 Z"
-          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
-        />
-        <path
-          d="M 22.5,27.6 L 22.5,28.8 M 21.2,28.8 C 22,29.3 23,29.3 23.8,28.8"
+          d="M 13.0,17.2 C 11.5,17.0 10.2,17.5 9.2,18.2"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
         />
 
-        {/* Flowing Curved Whisker Arcs */}
         <path
-          d="M 15,25 C 12,24.5 9,25 7,26 M 15.5,26.8 C 13,27 10.5,28 8.5,29.5"
-          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
+          d="M 32.0,17.2 C 30.8,16.0 28.2,16.8 26.8,19.2 C 28.5,19.8 30.5,19.2 32.0,17.2 Z"
+          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
         />
+        <circle cx="29.2" cy="18.0" r="0.65" style={{ fill: '#000000', stroke: 'none' }} />
         <path
-          d="M 30,25 C 33,24.5 36,25 38,26 M 29.5,26.8 C 32,27 34.5,28 36.5,29.5"
+          d="M 32.0,17.2 C 33.5,17.0 34.8,17.5 35.8,18.2"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
         />
 
-        {/* Forehead Blaze */}
+        {/* Long Slender Muzzle Bridge in White */}
         <path
-          d="M 22.5,13.5 C 22.2,15.5 22.2,17.5 22.5,19"
+          d="M 18.2,19.2 C 19.5,22.0 20.8,24.8 21.0,26.5"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.1' }}
+        />
+        <path
+          d="M 26.8,19.2 C 25.5,22.0 24.2,24.8 24.0,26.5"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.1' }}
+        />
+
+        {/* Cheek-to-Snout Mask Contours in White */}
+        <path
+          d="M 10.5,24.5 C 13.5,23.5 17.0,24.8 19.5,26.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
+        />
+        <path
+          d="M 34.5,24.5 C 31.5,23.5 28.0,24.8 25.5,26.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
+        />
+
+        {/* Crisp White Fox Nose Pad */}
+        <path
+          d="M 21.0,26.5 C 21.0,26.0 24.0,26.0 24.0,26.5 C 24.0,27.5 22.8,28.4 22.5,28.4 C 22.2,28.4 21.0,27.5 21.0,26.5 Z"
+          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.5' }}
+        />
+
+        {/* Vulpine Mouth & Tapered Chin in White */}
+        <path
+          d="M 22.5,28.4 L 22.5,29.3 M 20.8,29.8 C 21.8,30.2 23.2,30.2 24.2,29.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.9' }}
+        />
+        <path
+          d="M 20.0,30.8 C 21.2,31.5 23.8,31.5 25.0,30.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.0' }}
+        />
+
+        {/* Flowing Chest Fur Bib in White */}
+        <path
+          d="M 16.5,33.0 C 17.5,31.2 19.8,30.5 22.5,30.5 C 25.2,30.5 27.5,31.2 28.5,33.0"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.9' }}
         />
       </g>
@@ -257,7 +322,7 @@ export function BlackRedEaredFox({ svgStyle }) {
 // ---------------------------------------------------------------------------
 // White Normal Fox (f):
 // High-Staunton monochrome sculpture adorned with an exquisite half-queen
-// filigree tiara and soft inner-ear fluting.
+// filigree tiara, refined vulpine muzzle, and soft inner-ear fluting.
 // ---------------------------------------------------------------------------
 export function WhiteNormalFox({ svgStyle }) {
   return (
@@ -279,103 +344,121 @@ export function WhiteNormalFox({ svgStyle }) {
           style={{ fill: '#ffffff', stroke: '#000000' }}
         />
 
-        {/* Chest & Collar Ruffle */}
+        {/* Sculpted Fox Bust */}
         <path
-          d="M 14,33 C 14.5,30 18,28.5 22.5,28.5 C 27,28.5 30.5,30 31,33"
-          style={{ fill: '#ffffff', stroke: '#000000' }}
-        />
-
-        {/* Sculpted Fox Silhouette */}
-        <path
-          d="M 19,13 
-             C 17,9.5 14.5,6.5 12.5,4 
-             C 11.8,4 11.2,4.8 11,5.8 
-             C 10.5,9 9,13 8,15.5 
-             C 6.5,17.5 5.5,19.5 5.5,21.5 
-             C 5.5,22.8 7,23 8,23 
-             C 6.2,24.5 5.8,26 6.5,27 
-             C 7.5,28 10,28.5 12,28.5 
-             C 15,30.2 19,31.5 22.5,31.5 
-             C 26,31.5 30,30.2 33,28.5 
-             C 35,28.5 37.5,28 38.5,27 
-             C 39.2,26 38.8,24.5 37,23 
-             C 38,23 39.5,22.8 39.5,21.5 
-             C 39.5,19.5 38.5,17.5 37,15.5 
-             C 36,13 34.5,9 34,5.8 
-             C 33.8,4.8 33.2,4 32.5,4 
-             C 30.5,6.5 28,9.5 26,13 
-             C 24.5,12 20.5,12 19,13 Z"
+          d="M 22.5,12.5
+             C 20.5,12.0 18.2,11.2 17.2,10.5
+             L 10.5,3.0
+             C 9.8,3.5 9.0,5.2 8.8,7.0
+             C 8.2,10.0 7.6,12.5 7.0,14.0
+             C 5.8,15.5 4.5,17.2 4.0,18.8
+             C 3.8,19.5 4.2,20.0 5.2,19.8
+             C 6.8,19.5 7.8,19.2 8.5,20.2
+             C 7.0,21.8 5.2,23.5 5.0,24.5
+             C 4.8,25.3 5.5,25.5 6.8,25.2
+             C 8.2,24.8 9.5,24.2 10.5,25.5
+             C 11.8,27.2 12.8,29.8 13.5,33.0
+             L 31.5,33.0
+             C 32.2,29.8 33.2,27.2 34.5,25.5
+             C 35.5,24.2 36.8,24.8 38.2,25.2
+             C 39.5,25.5 40.2,25.3 40.0,24.5
+             C 39.8,23.5 38.0,21.8 36.5,20.2
+             C 37.2,19.2 38.2,19.5 39.8,19.8
+             C 40.8,20.0 41.2,19.5 41.0,18.8
+             C 40.5,17.2 39.0,15.5 37.8,14.0
+             C 37.2,12.5 36.5,10.0 36.0,7.0
+             C 35.8,5.2 35.0,3.5 34.5,3.0
+             L 27.8,10.5
+             C 26.8,11.2 24.5,12.0 22.5,12.5 Z"
           style={{ fill: '#ffffff', stroke: '#000000', strokeWidth: '1.5' }}
         />
 
-        {/* Elegant Staunton Inner Ear Fluting */}
+        {/* Inner Ears with Staunton Fluting Lines */}
         <path
-          d="M 13,6 C 11.5,9.5 10,13 10.5,15 C 11.5,15.5 14,15 16,13.5 C 15.5,11 14.5,8.5 13,6 Z"
+          d="M 11.0,5.2 C 9.8,8.5 9.0,12.0 9.8,13.8 C 10.8,14.5 13.5,13.8 15.5,11.8 C 14.8,9.5 13.0,7.0 11.0,5.2 Z"
           style={{ fill: '#ffffff', stroke: '#000000', strokeWidth: '1' }}
         />
         <path
-          d="M 12.8,8.5 C 11.8,11 11,13.2 11.8,14.2"
+          d="M 11.5,8.0 C 10.8,10.2 10.5,12.0 11.2,12.8"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.7' }}
         />
 
         <path
-          d="M 32,6 C 30.5,8.5 29.5,11 29,13.5 C 31,15 33.5,15.5 34.5,15 C 35,13 33.5,9.5 32,6 Z"
+          d="M 34.0,5.2 C 35.2,8.5 36.0,12.0 35.2,13.8 C 34.2,14.5 31.5,13.8 29.5,11.8 C 30.2,9.5 32.0,7.0 34.0,5.2 Z"
           style={{ fill: '#ffffff', stroke: '#000000', strokeWidth: '1' }}
         />
         <path
-          d="M 32.2,8.5 C 33.2,11 34,13.2 33.2,14.2"
+          d="M 33.5,8.0 C 34.2,10.2 34.5,12.0 33.8,12.8"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.7' }}
         />
 
         {/* Royal Half-Queen Tiara Diadem & Jewel */}
         <path
-          d="M 19,13.2 C 19.5,11 20.5,9.5 21,9 C 21.5,10.5 22,11.5 22.5,11.5 C 23,11.5 23.5,10.5 24,9 C 24.5,9.5 25.5,11 26,13.2 Z"
+          d="M 18.5,12.2 C 19.2,9.8 20.2,8.2 20.8,7.6 C 21.4,9.2 22.0,10.2 22.5,10.2 C 23.0,10.2 23.6,9.2 24.2,7.6 C 24.8,8.2 25.8,9.8 26.5,12.2 Z"
           style={{ fill: '#ffffff', stroke: '#000000', strokeWidth: '1' }}
         />
-        <circle cx="22.5" cy="8.2" r="0.9" style={{ fill: '#000000', stroke: 'none' }} />
+        <circle cx="22.5" cy="6.6" r="0.85" style={{ fill: '#000000', stroke: 'none' }} />
 
-        {/* Curved Facial Contour / Snout Bridge */}
+        {/* Slanted Almond Vulpine Eyes */}
         <path
-          d="M 16.5,19 C 18.5,22 20.5,24.5 22.5,25.5 C 24.5,24.5 26.5,22 28.5,19"
-          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.2' }}
-        />
-
-        {/* Noble Almond Fox Eyes with Life Glint */}
-        <path
-          d="M 14,19 C 15.5,17.5 18,18 19,19.5 C 18,20.8 15.5,20.5 14,19 Z"
+          d="M 13.0,17.2 C 14.2,16.0 16.8,16.8 18.2,19.2 C 16.5,19.8 14.5,19.2 13.0,17.2 Z"
           style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
         />
-        <circle cx="16.2" cy="19.1" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
-
+        <circle cx="15.8" cy="18.0" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
         <path
-          d="M 31,19 C 29.5,17.5 27,18 26,19.5 C 27,20.8 29.5,20.5 31,19 Z"
-          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
-        />
-        <circle cx="28.8" cy="19.1" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
-
-        {/* Delicate Heart-shaped Button Nose & Mouth */}
-        <path
-          d="M 21.3,25.8 C 21.3,25.3 23.7,25.3 23.7,25.8 C 23.7,26.8 22.5,27.6 22.5,27.6 C 22.5,27.6 21.3,26.8 21.3,25.8 Z"
-          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
-        />
-        <path
-          d="M 22.5,27.6 L 22.5,28.8 M 21.2,28.8 C 22,29.3 23,29.3 23.8,28.8"
+          d="M 13.0,17.2 C 11.5,17.0 10.2,17.5 9.2,18.2"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
         />
 
-        {/* Flowing Whisker Arcs */}
         <path
-          d="M 15,25 C 12,24.5 9,25 7,26 M 15.5,26.8 C 13,27 10.5,28 8.5,29.5"
-          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
+          d="M 32.0,17.2 C 30.8,16.0 28.2,16.8 26.8,19.2 C 28.5,19.8 30.5,19.2 32.0,17.2 Z"
+          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.4' }}
         />
+        <circle cx="29.2" cy="18.0" r="0.65" style={{ fill: '#ffffff', stroke: 'none' }} />
         <path
-          d="M 30,25 C 33,24.5 36,25 38,26 M 29.5,26.8 C 32,27 34.5,28 36.5,29.5"
+          d="M 32.0,17.2 C 33.5,17.0 34.8,17.5 35.8,18.2"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
         />
 
-        {/* Forehead Blaze */}
+        {/* Long Slender Muzzle Bridge */}
         <path
-          d="M 22.5,13.8 C 22.2,15.5 22.2,17.5 22.5,19"
+          d="M 18.2,19.2 C 19.5,22.0 20.8,24.8 21.0,26.5"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.1' }}
+        />
+        <path
+          d="M 26.8,19.2 C 25.5,22.0 24.2,24.8 24.0,26.5"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.1' }}
+        />
+
+        {/* Cheek-to-Snout Mask Contours */}
+        <path
+          d="M 10.5,24.5 C 13.5,23.5 17.0,24.8 19.5,26.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
+        />
+        <path
+          d="M 34.5,24.5 C 31.5,23.5 28.0,24.8 25.5,26.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.8' }}
+        />
+
+        {/* Fox Nose Pad */}
+        <path
+          d="M 21.0,26.5 C 21.0,26.0 24.0,26.0 24.0,26.5 C 24.0,27.5 22.8,28.4 22.5,28.4 C 22.2,28.4 21.0,27.5 21.0,26.5 Z"
+          style={{ fill: '#000000', stroke: '#000000', strokeWidth: '0.5' }}
+        />
+
+        {/* Vulpine Mouth & Tapered Chin */}
+        <path
+          d="M 22.5,28.4 L 22.5,29.3 M 20.8,29.8 C 21.8,30.2 23.2,30.2 24.2,29.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.9' }}
+        />
+        <path
+          d="M 20.0,30.8 C 21.2,31.5 23.8,31.5 25.0,30.8"
+          style={{ fill: 'none', stroke: '#000000', strokeWidth: '1.0' }}
+        />
+
+        {/* Flowing Chest Fur Bib */}
+        <path
+          d="M 16.5,33.0 C 17.5,31.2 19.8,30.5 22.5,30.5 C 25.2,30.5 27.5,31.2 28.5,33.0"
           style={{ fill: 'none', stroke: '#000000', strokeWidth: '0.9' }}
         />
       </g>
@@ -413,113 +496,148 @@ export function BlackNormalFox({ svgStyle }) {
           style={{ stroke: '#ffffff', strokeWidth: '1' }}
         />
 
-        {/* Chest & Collar Pedestal */}
+        {/* Sculpted Fox Bust */}
         <path
-          d="M 14,33 C 14.5,30 18,28.5 22.5,28.5 C 27,28.5 30.5,30 31,33"
-          style={{ fill: '#000000', stroke: '#000000' }}
-        />
-        <path
-          d="M 15,32 C 16.5,30 19,29 22.5,29 C 26,29 28.5,30 30,32"
-          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1' }}
-        />
-
-        {/* Sculpted Fox Silhouette */}
-        <path
-          d="M 19,13 
-             C 17,9.5 14.5,6.5 12.5,4 
-             C 11.8,4 11.2,4.8 11,5.8 
-             C 10.5,9 9,13 8,15.5 
-             C 6.5,17.5 5.5,19.5 5.5,21.5 
-             C 5.5,22.8 7,23 8,23 
-             C 6.2,24.5 5.8,26 6.5,27 
-             C 7.5,28 10,28.5 12,28.5 
-             C 15,30.2 19,31.5 22.5,31.5 
-             C 26,31.5 30,30.2 33,28.5 
-             C 35,28.5 37.5,28 38.5,27 
-             C 39.2,26 38.8,24.5 37,23 
-             C 38,23 39.5,22.8 39.5,21.5 
-             C 39.5,19.5 38.5,17.5 37,15.5 
-             C 36,13 34.5,9 34,5.8 
-             C 33.8,4.8 33.2,4 32.5,4 
-             C 30.5,6.5 28,9.5 26,13 
-             C 24.5,12 20.5,12 19,13 Z"
+          d="M 22.5,12.5
+             C 20.5,12.0 18.2,11.2 17.2,10.5
+             L 10.5,3.0
+             C 9.8,3.5 9.0,5.2 8.8,7.0
+             C 8.2,10.0 7.6,12.5 7.0,14.0
+             C 5.8,15.5 4.5,17.2 4.0,18.8
+             C 3.8,19.5 4.2,20.0 5.2,19.8
+             C 6.8,19.5 7.8,19.2 8.5,20.2
+             C 7.0,21.8 5.2,23.5 5.0,24.5
+             C 4.8,25.3 5.5,25.5 6.8,25.2
+             C 8.2,24.8 9.5,24.2 10.5,25.5
+             C 11.8,27.2 12.8,29.8 13.5,33.0
+             L 31.5,33.0
+             C 32.2,29.8 33.2,27.2 34.5,25.5
+             C 35.5,24.2 36.8,24.8 38.2,25.2
+             C 39.5,25.5 40.2,25.3 40.0,24.5
+             C 39.8,23.5 38.0,21.8 36.5,20.2
+             C 37.2,19.2 38.2,19.5 39.8,19.8
+             C 40.8,20.0 41.2,19.5 41.0,18.8
+             C 40.5,17.2 39.0,15.5 37.8,14.0
+             C 37.2,12.5 36.5,10.0 36.0,7.0
+             C 35.8,5.2 35.0,3.5 34.5,3.0
+             L 27.8,10.5
+             C 26.8,11.2 24.5,12.0 22.5,12.5 Z"
           style={{ fill: '#000000', stroke: '#000000', strokeWidth: '1.5' }}
         />
 
         {/* Outer White Contour */}
         <path
-          d="M 12.5,4 C 11.8,4 11.2,4.8 11,5.8 C 10.5,9 9,13 8,15.5 C 6.5,17.5 5.5,19.5 5.5,21.5 C 5.5,22.8 7,23 8,23 C 6.2,24.5 5.8,26 6.5,27 C 7.5,28 10,28.5 12,28.5 C 15,30.2 19,31.5 22.5,31.5 C 26,31.5 30,30.2 33,28.5 C 35,28.5 37.5,28 38.5,27 C 39.2,26 38.8,24.5 37,23 C 38,23 39.5,22.8 39.5,21.5 C 39.5,19.5 38.5,17.5 37,15.5 C 36,13 34.5,9 34,5.8 C 33.8,4.8 33.2,4 32.5,4"
+          d="M 17.2,10.5
+             L 10.5,3.0
+             C 9.8,3.5 9.0,5.2 8.8,7.0
+             C 8.2,10.0 7.6,12.5 7.0,14.0
+             C 5.8,15.5 4.5,17.2 4.0,18.8
+             C 3.8,19.5 4.2,20.0 5.2,19.8
+             C 6.8,19.5 7.8,19.2 8.5,20.2
+             C 7.0,21.8 5.2,23.5 5.0,24.5
+             C 4.8,25.3 5.5,25.5 6.8,25.2
+             C 8.2,24.8 9.5,24.2 10.5,25.5
+             C 11.8,27.2 12.8,29.8 13.5,33.0
+             M 31.5,33.0
+             C 32.2,29.8 33.2,27.2 34.5,25.5
+             C 35.5,24.2 36.8,24.8 38.2,25.2
+             C 39.5,25.5 40.2,25.3 40.0,24.5
+             C 39.8,23.5 38.0,21.8 36.5,20.2
+             C 37.2,19.2 38.2,19.5 39.8,19.8
+             C 40.8,20.0 41.2,19.5 41.0,18.8
+             C 40.5,17.2 39.0,15.5 37.8,14.0
+             C 37.2,12.5 36.5,10.0 36.0,7.0
+             C 35.8,5.2 35.0,3.5 34.5,3.0
+             L 27.8,10.5"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.2' }}
         />
 
-        {/* White Inner Ear Fluting */}
+        {/* Inner Ears with White Fluting Lines */}
         <path
-          d="M 13,6 C 11.5,9.5 10,13 10.5,15 C 11.5,15.5 14,15 16,13.5 C 15.5,11 14.5,8.5 13,6 Z"
+          d="M 11.0,5.2 C 9.8,8.5 9.0,12.0 9.8,13.8 C 10.8,14.5 13.5,13.8 15.5,11.8 C 14.8,9.5 13.0,7.0 11.0,5.2 Z"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1' }}
         />
         <path
-          d="M 12.8,8.5 C 11.8,11 11,13.2 11.8,14.2"
+          d="M 11.5,8.0 C 10.8,10.2 10.5,12.0 11.2,12.8"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.7' }}
         />
 
         <path
-          d="M 32,6 C 30.5,8.5 29.5,11 29,13.5 C 31,15 33.5,15.5 34.5,15 C 35,13 33.5,9.5 32,6 Z"
+          d="M 34.0,5.2 C 35.2,8.5 36.0,12.0 35.2,13.8 C 34.2,14.5 31.5,13.8 29.5,11.8 C 30.2,9.5 32.0,7.0 34.0,5.2 Z"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1' }}
         />
         <path
-          d="M 32.2,8.5 C 33.2,11 34,13.2 33.2,14.2"
+          d="M 33.5,8.0 C 34.2,10.2 34.5,12.0 33.8,12.8"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.7' }}
         />
 
-        {/* Royal Half-Queen Tiara Diadem & Jewel */}
+        {/* Royal Half-Queen Tiara Diadem & Jewel in White */}
         <path
-          d="M 19,13.2 C 19.5,11 20.5,9.5 21,9 C 21.5,10.5 22,11.5 22.5,11.5 C 23,11.5 23.5,10.5 24,9 C 24.5,9.5 25.5,11 26,13.2 Z"
+          d="M 18.5,12.2 C 19.2,9.8 20.2,8.2 20.8,7.6 C 21.4,9.2 22.0,10.2 22.5,10.2 C 23.0,10.2 23.6,9.2 24.2,7.6 C 24.8,8.2 25.8,9.8 26.5,12.2 Z"
           style={{ fill: '#000000', stroke: '#ffffff', strokeWidth: '1' }}
         />
-        <circle cx="22.5" cy="8.2" r="0.9" style={{ fill: '#ffffff', stroke: 'none' }} />
+        <circle cx="22.5" cy="6.6" r="0.85" style={{ fill: '#ffffff', stroke: 'none' }} />
 
-        {/* Curved Facial Contour / Snout Bridge */}
+        {/* Slanted Almond Vulpine Eyes */}
         <path
-          d="M 16.5,19 C 18.5,22 20.5,24.5 22.5,25.5 C 24.5,24.5 26.5,22 28.5,19"
-          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.2' }}
-        />
-
-        {/* Luminous Almond Fox Eyes with Ebony Pupils */}
-        <path
-          d="M 14,19 C 15.5,17.5 18,18 19,19.5 C 18,20.8 15.5,20.5 14,19 Z"
+          d="M 13.0,17.2 C 14.2,16.0 16.8,16.8 18.2,19.2 C 16.5,19.8 14.5,19.2 13.0,17.2 Z"
           style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
         />
-        <circle cx="16.5" cy="19.2" r="0.7" style={{ fill: '#000000', stroke: 'none' }} />
-
+        <circle cx="15.8" cy="18.0" r="0.65" style={{ fill: '#000000', stroke: 'none' }} />
         <path
-          d="M 31,19 C 29.5,17.5 27,18 26,19.5 C 27,20.8 29.5,20.5 31,19 Z"
-          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
-        />
-        <circle cx="28.5" cy="19.2" r="0.7" style={{ fill: '#000000', stroke: 'none' }} />
-
-        {/* Delicate White Button Nose & Mouth */}
-        <path
-          d="M 21.3,25.8 C 21.3,25.3 23.7,25.3 23.7,25.8 C 23.7,26.8 22.5,27.6 22.5,27.6 C 22.5,27.6 21.3,26.8 21.3,25.8 Z"
-          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
-        />
-        <path
-          d="M 22.5,27.6 L 22.5,28.8 M 21.2,28.8 C 22,29.3 23,29.3 23.8,28.8"
+          d="M 13.0,17.2 C 11.5,17.0 10.2,17.5 9.2,18.2"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
         />
 
-        {/* Flowing Whisker Arcs */}
         <path
-          d="M 15,25 C 12,24.5 9,25 7,26 M 15.5,26.8 C 13,27 10.5,28 8.5,29.5"
-          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
+          d="M 32.0,17.2 C 30.8,16.0 28.2,16.8 26.8,19.2 C 28.5,19.8 30.5,19.2 32.0,17.2 Z"
+          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.4' }}
         />
+        <circle cx="29.2" cy="18.0" r="0.65" style={{ fill: '#000000', stroke: 'none' }} />
         <path
-          d="M 30,25 C 33,24.5 36,25 38,26 M 29.5,26.8 C 32,27 34.5,28 36.5,29.5"
+          d="M 32.0,17.2 C 33.5,17.0 34.8,17.5 35.8,18.2"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
         />
 
-        {/* Forehead Blaze */}
+        {/* Muzzle Bridge in White */}
         <path
-          d="M 22.5,13.8 C 22.2,15.5 22.2,17.5 22.5,19"
+          d="M 18.2,19.2 C 19.5,22.0 20.8,24.8 21.0,26.5"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.1' }}
+        />
+        <path
+          d="M 26.8,19.2 C 25.5,22.0 24.2,24.8 24.0,26.5"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.1' }}
+        />
+
+        {/* Cheek-to-Snout Mask Contours in White */}
+        <path
+          d="M 10.5,24.5 C 13.5,23.5 17.0,24.8 19.5,26.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
+        />
+        <path
+          d="M 34.5,24.5 C 31.5,23.5 28.0,24.8 25.5,26.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.8' }}
+        />
+
+        {/* Fox Nose Pad in White */}
+        <path
+          d="M 21.0,26.5 C 21.0,26.0 24.0,26.0 24.0,26.5 C 24.0,27.5 22.8,28.4 22.5,28.4 C 22.2,28.4 21.0,27.5 21.0,26.5 Z"
+          style={{ fill: '#ffffff', stroke: '#ffffff', strokeWidth: '0.5' }}
+        />
+
+        {/* Vulpine Mouth & Tapered Chin in White */}
+        <path
+          d="M 22.5,28.4 L 22.5,29.3 M 20.8,29.8 C 21.8,30.2 23.2,30.2 24.2,29.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.9' }}
+        />
+        <path
+          d="M 20.0,30.8 C 21.2,31.5 23.8,31.5 25.0,30.8"
+          style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '1.0' }}
+        />
+
+        {/* Flowing Chest Fur Bib in White */}
+        <path
+          d="M 16.5,33.0 C 17.5,31.2 19.8,30.5 22.5,30.5 C 25.2,30.5 27.5,31.2 28.5,33.0"
           style={{ fill: 'none', stroke: '#ffffff', strokeWidth: '0.9' }}
         />
       </g>
