@@ -532,7 +532,7 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
         to,
         promotion,
         san: executed.san,
-        fen: eng.fen(),
+        fen: typeof eng.fen === 'function' ? eng.fen() : null,
         variant: 'fox',
       }
 
