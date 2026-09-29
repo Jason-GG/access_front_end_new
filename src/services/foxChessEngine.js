@@ -127,6 +127,112 @@ export class FoxChess {
     return this.activeTurn
   }
 
+  fen() {
+    const rows = []
+    for (let r = 9; r >= 0; r--) {
+      let emptyCount = 0
+      let rowStr = ''
+      for (let f = 0; f < 10; f++) {
+        const piece = this.board[r][f]
+        if (!piece) {
+          emptyCount++
+        } else {
+          if (emptyCount > 0) {
+            rowStr += emptyCount
+            emptyCount = 0
+          }
+          const char = piece.type === 'rf' ? 'c' : piece.type === 'f' ? 'f' : piece.type
+          rowStr += piece.color === 'w' ? char.toUpperCase() : char.toLowerCase()
+        }
+      }
+      if (emptyCount > 0) {
+        rowStr += emptyCount
+      }
+      rows.push(rowStr)
+    }
+
+    const castlingStr =
+      (this.castling.w.k ? 'K' : '') +
+      (this.castling.w.q ? 'Q' : '') +
+      (this.castling.b.k ? 'k' : '') +
+      (this.castling.b.q ? 'q' : '') || '-'
+
+    const epStr = this.enPassantSquare
+      ? toSquare(this.enPassantSquare.f, this.enPassantSquare.r)
+      : '-'
+
+    return `${rows.join('/')} ${this.activeTurn} ${castlingStr} ${epStr} ${this.halfmoveClock} ${this.fullmoveNumber}`
+  }
+
+  load(fen) {
+    if (!fen || typeof fen !== 'string') return false
+    const parts = fen.trim().split(/\s+/)
+    if (parts.length < 1) return false
+
+    const placement = parts[0]
+    const activeColor = parts[1] || 'w'
+    const castling = parts[2] || '-'
+    const ep = parts[3] || '-'
+    const halfmove = parseInt(parts[4], 10) || 0
+    const fullmove = parseInt(parts[5], 10) || 1
+
+    const ranks = placement.split('/')
+    if (ranks.length !== 10) return false
+
+    const newBoard = Array.from({ length: 10 }, () => Array(10).fill(null))
+
+    for (let rowIdx = 0; rowIdx < 10; rowIdx++) {
+      const r = 9 - rowIdx
+      const rankStr = ranks[rowIdx]
+      let f = 0
+      for (let i = 0; i < rankStr.length; i++) {
+        const ch = rankStr[i]
+        if (ch >= '0' && ch <= '9') {
+          if (ch === '1' && rankStr[i + 1] === '0') {
+            f += 10
+            i++
+          } else {
+            f += parseInt(ch, 10)
+          }
+        } else {
+          if (f >= 10) return false
+          const isWhite = ch === ch.toUpperCase()
+          const lower = ch.toLowerCase()
+          let type = lower
+          if (lower === 'c' || lower === 'x') type = 'rf'
+          else if (lower === 'f') type = 'f'
+          newBoard[r][f] = { type, color: isWhite ? 'w' : 'b' }
+          f++
+        }
+      }
+      if (f !== 10) return false
+    }
+
+    this.board = newBoard
+    this.activeTurn = activeColor === 'b' ? 'b' : 'w'
+    this.castling = {
+      w: { k: castling.includes('K'), q: castling.includes('Q') },
+      b: { k: castling.includes('k'), q: castling.includes('q') },
+    }
+    this.enPassantSquare = ep !== '-' ? parseSquare(ep) : null
+    this.halfmoveClock = halfmove
+    this.fullmoveNumber = fullmove
+    this.moveHistory = []
+    this.captured = { w: [], b: [] }
+    return true
+  }
+
+  loadFen(fen) {
+    return this.load(fen)
+  }
+
+  getCaptured() {
+    return {
+      white: [...this.captured.w],
+      black: [...this.captured.b],
+    }
+  }
+
   getPiece(f, r) {
     if (typeof f === 'string') {
       const parsed = parseSquare(f)
@@ -608,9 +714,23 @@ export class FoxChess {
     let from, to, promotion
 
     if (typeof moveParam === 'string') {
-      const parts = moveParam.split('-')
-      from = parts[0]
-      to = parts[1]
+      if (moveParam.includes('-')) {
+        const parts = moveParam.split('-')
+        from = parts[0]
+        to = parts[1]
+      } else {
+        const legal = this.moves({ verbose: true })
+        const cleanParam = moveParam.replace(/[+#]/g, '')
+        const found = legal.find((m) => {
+          const san = this.generateSan(m)
+          return san === moveParam || san.replace(/[+#]/g, '') === cleanParam
+        })
+        if (found) {
+          from = found.from
+          to = found.to
+          promotion = found.promotion
+        }
+      }
     } else if (moveParam && typeof moveParam === 'object') {
       from = moveParam.from
       to = moveParam.to

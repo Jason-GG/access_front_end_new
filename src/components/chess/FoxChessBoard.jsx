@@ -184,8 +184,8 @@ export function FoxChessBoard({
               pieceCode = `${piece.color}${typeCode}`
             }
 
-            // Show coordinates on the outer edges
-            const showRank = colIdx === 0
+            // Show coordinates on the outer edges (ranks on the right side, files along bottom)
+            const showRank = colIdx === 9
             const showFile = rowIdx === 9
 
             return (
