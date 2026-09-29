@@ -51,9 +51,13 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
 
   const syncFromEngine = useCallback(() => {
     const engine = engineRef.current
-    setFen(engine.fen())
-    setHistory([...engine.history()])
-    setCaptured(engine.captured())
+    if (!engine) return
+    setFen(typeof engine.fen === 'function' ? engine.fen() : null)
+    setHistory(typeof engine.history === 'function' ? [...engine.history()] : [])
+    setCaptured({
+      white: engine.captured?.w || [],
+      black: engine.captured?.b || [],
+    })
   }, [])
 
   const applySnapshot = useCallback((snap) => {
