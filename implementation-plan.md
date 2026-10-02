@@ -5,7 +5,7 @@ Ensure players can start a room, wait for an opponent to join, have the game sta
 ## User Review Required
 
 > [!IMPORTANT]
-> The remote backend is live at `https://achess.wguan.dpdns.org`. In development mode, WebSocket connections will point directly to `wss://achess.wguan.dpdns.org` (or Vite proxy fallback) with full authentication fallback (`Sec-WebSocket-Protocol` header and `?token=<jwt>` query parameter).
+> The remote backend is live at `https://achess-api.wguan.dpdns.org`. In development mode, WebSocket connections will point directly to `wss://achess-api.wguan.dpdns.org` (or Vite proxy fallback) with full authentication fallback (`Sec-WebSocket-Protocol` header and `?token=<jwt>` query parameter).
 
 ## Analysis & Root Causes Identified
 
@@ -62,7 +62,7 @@ Ensure players can start a room, wait for an opponent to join, have the game sta
 ### `src/services/request.js`
 
 #### [MODIFY] [request.js](file:///Users/sjian/Documents/projects/access_front_end_new/src/services/request.js)
-- Ensure `getWebSocketBaseUrl()` in dev mode points to `wss://achess.wguan.dpdns.org` or follows `VITE_WS_BASE_URL` so that WebSockets connect reliably to the live backend.
+- Ensure `getWebSocketBaseUrl()` in dev mode points to `wss://achess-api.wguan.dpdns.org` or follows `VITE_WS_BASE_URL` so that WebSockets connect reliably to the live backend.
 
 ---
 

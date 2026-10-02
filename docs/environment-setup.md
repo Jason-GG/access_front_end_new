@@ -9,7 +9,7 @@ This document explains the environment configuration setup for switching between
 | Environment | Mode | API Base URL | Backend Host | WebSocket URL |
 |---|---|---|---|---|
 | **Development** | `development` | `/api` *(proxied)* | `https://achess-dev.wguan.dpdns.org` | `wss://achess-dev.wguan.dpdns.org` |
-| **Production** | `production` | `https://achess.wguan.dpdns.org` | `https://achess.wguan.dpdns.org` | `wss://achess.wguan.dpdns.org` |
+| **Production** | `production` | `https://achess-api.wguan.dpdns.org` | `https://achess-api.wguan.dpdns.org` | `wss://achess-api.wguan.dpdns.org` |
 
 ---
 
@@ -28,9 +28,9 @@ This document explains the environment configuration setup for switching between
 - **[.env.production](file:///.env.production)**:
   ```env
   # Production Environment Configuration
-  VITE_API_BASE_URL=https://achess.wguan.dpdns.org
-  VITE_BACKEND_URL=https://achess.wguan.dpdns.org
-  VITE_WS_BASE_URL=wss://achess.wguan.dpdns.org
+  VITE_API_BASE_URL=https://achess-api.wguan.dpdns.org
+  VITE_BACKEND_URL=https://achess-api.wguan.dpdns.org
+  VITE_WS_BASE_URL=wss://achess-api.wguan.dpdns.org
   ```
 
 - **[.env.example](file:///.env.example)**:
@@ -61,7 +61,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const defaultBackend = mode === 'production'
-    ? 'https://achess.wguan.dpdns.org'
+    ? 'https://achess-api.wguan.dpdns.org'
     : 'https://achess-dev.wguan.dpdns.org'
   const backend = env.VITE_BACKEND_URL || defaultBackend
 
@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
 
 #### 2. HTTP & WebSocket Service ([src/services/request.js](file:///src/services/request.js))
 - In **development**, API requests default to `/api` to leverage Vite's local dev server proxy (avoiding browser CORS issues), and WebSockets connect to `wss://achess-dev.wguan.dpdns.org`.
-- In **production**, requests target `https://achess.wguan.dpdns.org`, and WebSockets connect to `wss://achess.wguan.dpdns.org`.
+- In **production**, requests target `https://achess-api.wguan.dpdns.org`, and WebSockets connect to `wss://achess-api.wguan.dpdns.org`.
 - Both can be overridden via `VITE_API_BASE_URL` and `VITE_WS_BASE_URL`.
 
 ---
@@ -93,8 +93,8 @@ export default defineConfig(({ mode }) => {
 | Command | Mode | Backend Target | Description |
 |---|---|---|---|
 | `npm run dev` | `development` | `achess-dev.wguan.dpdns.org` | Starts local dev server pointing to **Dev** backend |
-| `npm run dev:prod` | `production` | `achess.wguan.dpdns.org` | Starts local dev server pointing to **Prod** backend |
-| `npm run build` | `production` | `achess.wguan.dpdns.org` | Builds production bundle pointing to **Prod** |
+| `npm run dev:prod` | `production` | `achess-api.wguan.dpdns.org` | Starts local dev server pointing to **Prod** backend |
+| `npm run build` | `production` | `achess-api.wguan.dpdns.org` | Builds production bundle pointing to **Prod** |
 | `npm run build:dev` | `development` | `achess-dev.wguan.dpdns.org` | Builds staging bundle pointing to **Dev** |
 
 ---
