@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from '../utils/constants'
 
 const DEV_HOST = 'https://achess-dev.wguan.dpdns.org'
-const PROD_HOST = 'https://achess-api.wguan.dpdns.org'
+const PROD_HOST = 'http://139.159.186.80:3000'
 
 const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
 const defaultRemoteHost = isProd ? PROD_HOST : DEV_HOST
@@ -20,7 +20,7 @@ export function getWebSocketBaseUrl() {
     return base.replace(/^http/i, 'ws')
   }
   if (import.meta.env.DEV) {
-    return isProd ? 'wss://achess-api.wguan.dpdns.org' : 'wss://achess-dev.wguan.dpdns.org'
+    return isProd ? 'ws://139.159.186.80:3000' : 'wss://achess-dev.wguan.dpdns.org'
   }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}${base}`

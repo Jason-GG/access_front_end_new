@@ -9,7 +9,7 @@ This document explains the environment configuration setup for switching between
 | Environment | Mode | API Base URL | Backend Host | WebSocket URL |
 |---|---|---|---|---|
 | **Development** | `development` | `/api` *(proxied)* | `https://achess-dev.wguan.dpdns.org` | `wss://achess-dev.wguan.dpdns.org` |
-| **Production** | `production` | `https://achess-api.wguan.dpdns.org` | `https://achess-api.wguan.dpdns.org` | `wss://achess-api.wguan.dpdns.org` |
+| **Production** | `production` | `http://139.159.186.80:3000` | `http://139.159.186.80:3000` | `ws://139.159.186.80:3000` |
 
 ---
 
@@ -28,9 +28,9 @@ This document explains the environment configuration setup for switching between
 - **[.env.production](file:///.env.production)**:
   ```env
   # Production Environment Configuration
-  VITE_API_BASE_URL=https://achess-api.wguan.dpdns.org
-  VITE_BACKEND_URL=https://achess-api.wguan.dpdns.org
-  VITE_WS_BASE_URL=wss://achess-api.wguan.dpdns.org
+  VITE_API_BASE_URL=http://139.159.186.80:3000
+  VITE_BACKEND_URL=http://139.159.186.80:3000
+  VITE_WS_BASE_URL=ws://139.159.186.80:3000
   ```
 
 - **[.env.example](file:///.env.example)**:
@@ -61,7 +61,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const defaultBackend = mode === 'production'
-    ? 'https://achess-api.wguan.dpdns.org'
+    ? 'http://139.159.186.80:3000'
     : 'https://achess-dev.wguan.dpdns.org'
   const backend = env.VITE_BACKEND_URL || defaultBackend
 
@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
 
 #### 2. HTTP & WebSocket Service ([src/services/request.js](file:///src/services/request.js))
 - In **development**, API requests default to `/api` to leverage Vite's local dev server proxy (avoiding browser CORS issues), and WebSockets connect to `wss://achess-dev.wguan.dpdns.org`.
-- In **production**, requests target `https://achess-api.wguan.dpdns.org`, and WebSockets connect to `wss://achess-api.wguan.dpdns.org`.
+- In **production**, requests target `http://139.159.186.80:3000`, and WebSockets connect to `ws://139.159.186.80:3000`.
 - Both can be overridden via `VITE_API_BASE_URL` and `VITE_WS_BASE_URL`.
 
 ---
@@ -93,8 +93,8 @@ export default defineConfig(({ mode }) => {
 | Command | Mode | Backend Target | Description |
 |---|---|---|---|
 | `npm run dev` | `development` | `achess-dev.wguan.dpdns.org` | Starts local dev server pointing to **Dev** backend |
-| `npm run dev:prod` | `production` | `achess-api.wguan.dpdns.org` | Starts local dev server pointing to **Prod** backend |
-| `npm run build` | `production` | `achess-api.wguan.dpdns.org` | Builds production bundle pointing to **Prod** |
+| `npm run dev:prod` | `production` | `139.159.186.80:3000` | Starts local dev server pointing to **Prod** backend |
+| `npm run build` | `production` | `139.159.186.80:3000` | Builds production bundle pointing to **Prod** |
 | `npm run build:dev` | `development` | `achess-dev.wguan.dpdns.org` | Builds staging bundle pointing to **Dev** |
 
 ---

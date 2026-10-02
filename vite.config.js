@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const defaultBackend = mode === 'production'
-    ? 'https://achess-api.wguan.dpdns.org'
+    ? 'http://139.159.186.80:3000'
     : 'https://achess-dev.wguan.dpdns.org'
   const backend = env.VITE_BACKEND_URL || defaultBackend
 
