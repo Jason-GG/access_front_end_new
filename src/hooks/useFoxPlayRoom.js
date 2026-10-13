@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as playApi from '../api/playApi'
+import { describeResult, isDrawResult } from '../services/chessService'
 import { FoxChess } from '../services/foxChessEngine'
 import { getStoredAccessToken, getWebSocketBaseUrl } from '../services/request'
 
@@ -28,6 +29,93 @@ function extractUserId(...candidates) {
   return null
 }
 
+function parseClientState(raw) {
+  if (!raw) return null
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return null
+    }
+  }
+  if (typeof raw === 'object') return raw
+  return null
+}
+
+function extractClientState(obj) {
+  if (!obj || typeof obj !== 'object') return null
+  const direct =
+    obj.clientState ??
+    obj.client_state ??
+    obj.state ??
+    obj.room?.clientState ??
+    obj.room?.client_state ??
+    obj.room?.state ??
+    obj.snapshot?.clientState ??
+    obj.snapshot?.client_state ??
+    obj.snapshot?.state ??
+    obj.data?.clientState ??
+    obj.data?.client_state ??
+    obj.data?.state ??
+    obj.game?.clientState ??
+    obj.game?.client_state ??
+    obj.game?.state
+  return parseClientState(direct)
+}
+
+function buildFoxClientState(engine, executedMove = null, custom = {}) {
+  const isCheckmate = typeof engine.isCheckmate === 'function' ? engine.isCheckmate() : false
+  const isStalemate = typeof engine.isStalemate === 'function' ? engine.isStalemate() : false
+  const isGameOver = typeof engine.isGameOver === 'function' ? engine.isGameOver() : false
+  const turn = typeof engine.turn === 'function' ? engine.turn() : 'w'
+  let result = null
+  let gameOverReason = null
+  if (isCheckmate) {
+    result = turn === 'w' ? 'black_checkmate' : 'white_checkmate'
+    gameOverReason = result
+  } else if (isStalemate) {
+    result = 'stalemate'
+    gameOverReason = 'stalemate'
+  }
+  return {
+    boardType: 'achess',
+    variant: 'fox',
+    fen: typeof engine.fen === 'function' ? engine.fen() : null,
+    turn,
+    history: typeof engine.history === 'function' ? [...engine.history()] : [],
+    captured: {
+      white: engine.captured?.w || [],
+      black: engine.captured?.b || [],
+    },
+    lastMove: executedMove || null,
+    isGameOver,
+    isCheckmate,
+    isStalemate,
+    inCheck: typeof engine.inCheck === 'function' ? engine.inCheck() : false,
+    result,
+    gameOverReason,
+    ...custom,
+  }
+}
+
+function applyClientStateToEngine(engine, rawClientState) {
+  const state = parseClientState(rawClientState)
+  if (!state) return false
+  if (state.fen && typeof engine.load === 'function') {
+    engine.load(state.fen)
+  }
+  if (state.captured) {
+    engine.captured = {
+      w: [...(state.captured.white || state.captured.w || [])],
+      b: [...(state.captured.black || state.captured.b || [])],
+    }
+  }
+  if (Array.isArray(state.history)) {
+    engine.moveHistory = [...state.history]
+  }
+  return true
+}
+
 export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
   const [room, setRoom] = useState(null)
   const [fen, setFen] = useState(null)
@@ -48,6 +136,7 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
   const engineRef = useRef(new FoxChess())
   const socketRef = useRef(null)
   const handleMessageRef = useRef(() => {})
+  const refreshMovesRef = useRef(() => {})
 
   const syncFromEngine = useCallback(() => {
     const engine = engineRef.current
@@ -71,6 +160,22 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
     setRoom((prev) => ({ ...(prev || {}), ...source }))
     if ('drawOfferBy' in source) setDrawOfferBy(source.drawOfferBy || null)
 
+    const state = extractClientState(source) || extractClientState(snap)
+    if (state) {
+      applyClientStateToEngine(engineRef.current, state)
+      syncFromEngine()
+      if (state.result || state.gameOverReason || state.isGameOver) {
+        setRoom((prev) => ({
+          ...(prev || {}),
+          status: 'finished',
+          result: state.result || state.gameOverReason || prev?.result,
+        }))
+      }
+    } else if (source.fen) {
+      engineRef.current.load(source.fen)
+      syncFromEngine()
+    }
+
     const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
     const blackClock = source.clocks?.black ?? source.blackTimeMs ?? source.black_time_ms
     if (whiteClock != null && blackClock != null) {
@@ -81,7 +186,7 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
         at: Date.now(),
       })
     }
-  }, [])
+  }, [syncFromEngine])
 
   const addComment = useCallback((comment) => {
     if (!comment || !comment.id) return
@@ -92,11 +197,17 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
 
   const applyMove = useCallback(
     (msg) => {
-      const state = msg.state || {}
+      const incomingState = extractClientState(msg) || extractClientState(msg?.state)
       const moveData = msg.move?.move ?? msg.move ?? (msg.from || msg.san ? msg : null)
+      const engine = engineRef.current
 
-      if (moveData) {
-        const engine = engineRef.current
+      if (incomingState && incomingState.fen) {
+        const currentFen = typeof engine.fen === 'function' ? engine.fen() : null
+        if (!currentFen || currentFen !== incomingState.fen) {
+          applyClientStateToEngine(engine, incomingState)
+          syncFromEngine()
+        }
+      } else if (moveData) {
         const from = moveData.from
         const to = moveData.to
         const promotion = moveData.promotion
@@ -115,25 +226,37 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
               engine.move(moveData.san)
             }
           } catch {
-            // ignore bad/mismatched moves
+            if (msg.fen || moveData.fen) {
+              engine.load(msg.fen || moveData.fen)
+            }
           }
           syncFromEngine()
         }
       }
 
-      const nextResult = state.result || msg.result
-      if (state.gameOver || nextResult) {
+      const nextResult =
+        incomingState?.result ||
+        incomingState?.gameOverReason ||
+        msg.result ||
+        msg.gameOverReason ||
+        (engine.isCheckmate()
+          ? (engine.turn() === 'w' ? 'black_checkmate' : 'white_checkmate')
+          : engine.isStalemate()
+            ? 'stalemate'
+            : null)
+
+      if (incomingState?.isGameOver || engine.isGameOver() || nextResult) {
         setRoom((prev) =>
           prev ? { ...prev, status: 'finished', result: nextResult || prev.result } : prev,
         )
       }
 
-      const nextClocks = msg.clocks || state.clocks
+      const nextClocks = msg.clocks || incomingState?.clocks
       if (nextClocks) {
         setClockBase({
           white: nextClocks.white ?? 0,
           black: nextClocks.black ?? 0,
-          turn: engineRef.current.turn(),
+          turn: engine.turn(),
           at: Date.now(),
         })
       }
@@ -149,23 +272,37 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
     try {
       const snap = await playApi.getRoom(roomId)
       applySnapshot(snap)
+      const snapState = extractClientState(snap)
       const targetGameId = snap?.gameId || snap?.room?.gameId || snap?.room?.game?.id
       if (targetGameId) {
         const data = await playApi.getGameMoves(targetGameId)
+        const gameState = extractClientState(data)
         const rawMoves = data?.game?.moves || data?.moves || []
+        const latestMoveState =
+          rawMoves.length > 0 ? extractClientState(rawMoves[rawMoves.length - 1]) : null
+        const bestState = latestMoveState || gameState || snapState
+
         const engine = new FoxChess()
-        for (const m of rawMoves) {
-          try {
-            if (m.from && m.to) {
-              engine.move({ from: m.from, to: m.to, promotion: m.promotion })
-            } else if (m.san) {
-              engine.move(m.san)
+        if (rawMoves.length > 0) {
+          for (const m of rawMoves) {
+            try {
+              if (m.from && m.to) {
+                engine.move({ from: m.from, to: m.to, promotion: m.promotion })
+              } else if (m.san) {
+                engine.move(m.san)
+              }
+            } catch {
+              // ignore
             }
-          } catch {
-            // ignore
           }
         }
+        if (bestState && bestState.fen) {
+          applyClientStateToEngine(engine, bestState)
+        }
         engineRef.current = engine
+        syncFromEngine()
+      } else if (snapState && snapState.fen) {
+        applyClientStateToEngine(engineRef.current, snapState)
         syncFromEngine()
       }
     } catch {
@@ -208,8 +345,18 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
           })
         } else if (type.includes('accept')) {
           setTakeback(null)
-          engineRef.current.undo()
-          syncFromEngine()
+          const state = extractClientState(msg)
+          if (state) {
+            applyClientStateToEngine(engineRef.current, state)
+            syncFromEngine()
+          } else if (msg.fen) {
+            engineRef.current.load(msg.fen)
+            syncFromEngine()
+          } else {
+            engineRef.current.undo()
+            syncFromEngine()
+          }
+          refreshMoves()
         } else {
           setTakeback(null)
         }
@@ -233,15 +380,21 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
       }
 
       if (type.includes('finish') || type.includes('end') || type === 'result') {
+        const res = msg.result || msg.game?.result || msg.reason
         setRoom((prev) =>
           prev
             ? {
                 ...prev,
                 status: 'finished',
-                result: msg.result || msg.game?.result || prev.result,
+                result: res || prev.result,
               }
             : prev,
         )
+        const incomingState = extractClientState(msg)
+        if (incomingState?.fen) {
+          applyClientStateToEngine(engineRef.current, incomingState)
+          syncFromEngine()
+        }
         setDrawOfferBy(null)
         setTakeback(null)
         return
@@ -249,12 +402,16 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
 
       if (msg.members) applySnapshot(msg)
     },
-    [applyMove, applySnapshot, addComment, syncFromEngine],
+    [applyMove, applySnapshot, addComment, refreshMoves, syncFromEngine],
   )
 
   useEffect(() => {
     handleMessageRef.current = handleMessage
   }, [handleMessage])
+
+  useEffect(() => {
+    refreshMovesRef.current = refreshMoves
+  }, [refreshMoves])
 
   // Join the room and load initial snapshot, moves, and chat
   useEffect(() => {
@@ -279,24 +436,38 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
         if (!active) return
         applySnapshot(snap)
 
+        const snapState = extractClientState(snap)
         const targetGameId = snap?.gameId || snap?.room?.gameId || snap?.room?.game?.id
         if (targetGameId) {
           const data = await playApi.getGameMoves(targetGameId)
           if (!active) return
+          const gameState = extractClientState(data)
           const rawMoves = data?.game?.moves || data?.moves || []
+          const latestMoveState =
+            rawMoves.length > 0 ? extractClientState(rawMoves[rawMoves.length - 1]) : null
+          const bestState = latestMoveState || gameState || snapState
+
           const engine = new FoxChess()
-          for (const m of rawMoves) {
-            try {
-              if (m.from && m.to) {
-                engine.move({ from: m.from, to: m.to, promotion: m.promotion })
-              } else if (m.san) {
-                engine.move(m.san)
+          if (rawMoves.length > 0) {
+            for (const m of rawMoves) {
+              try {
+                if (m.from && m.to) {
+                  engine.move({ from: m.from, to: m.to, promotion: m.promotion })
+                } else if (m.san) {
+                  engine.move(m.san)
+                }
+              } catch {
+                // ignore
               }
-            } catch {
-              // ignore
             }
           }
+          if (bestState && bestState.fen) {
+            applyClientStateToEngine(engine, bestState)
+          }
           engineRef.current = engine
+          syncFromEngine()
+        } else if (snapState && snapState.fen) {
+          applyClientStateToEngine(engineRef.current, snapState)
           syncFromEngine()
         }
 
@@ -350,6 +521,9 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
 
       socket.onopen = () => {
         opened = true
+        if (attempts > 0) {
+          refreshMovesRef.current()
+        }
         attempts = 0
         setConnection('connected')
         setError(null)
@@ -470,7 +644,7 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
       return { kind: 'waiting', label: 'Waiting for an opponent to join' }
     }
     if (gameStatus === 'finished') {
-      return { kind: 'finished', label: result || 'Game finished' }
+      return { kind: isDrawResult(result) ? 'draw' : 'finished', label: describeResult(result) }
     }
     if (engine.isCheckmate()) {
       return {
@@ -526,14 +700,26 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
 
       syncFromEngine()
 
+      const clientState = buildFoxClientState(eng, executed)
       const payload = {
         type: 'move',
+        boardType: 'achess',
+        variant: 'fox',
         from,
         to,
         promotion,
         san: executed.san,
-        fen: typeof eng.fen === 'function' ? eng.fen() : null,
-        variant: 'fox',
+        fen: clientState.fen,
+        state: clientState,
+        clientState,
+      }
+
+      if (clientState.isGameOver) {
+        payload.result = clientState.result
+        payload.gameOverReason = clientState.gameOverReason
+        setRoom((prev) =>
+          prev ? { ...prev, status: 'finished', result: clientState.result || prev.result } : prev,
+        )
       }
 
       const socket = socketRef.current
@@ -543,7 +729,7 @@ export function useFoxPlayRoom({ roomId, currentUserId, enabled = true }) {
       }
 
       playApi
-        .makeRoomMove(roomId, { from, to, promotion })
+        .makeRoomMove(roomId, { from, to, promotion, state: clientState, clientState })
         .then((res) => {
           if (res && !res.error) {
             applyMove(res)

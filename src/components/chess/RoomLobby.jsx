@@ -20,6 +20,8 @@ function timeControl(room) {
 
 export function RoomLobby({
   onEnterRoom,
+  onCreateRoom,
+  boardType,
   title = 'Rooms waiting for a player',
   eyebrow = 'Open challenges',
   createLabel = 'Create a room',
@@ -34,15 +36,24 @@ export function RoomLobby({
   const loadRooms = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true)
     try {
-      const data = await playApi.listRooms({ status: 'waiting', limit: 20 })
-      setRooms(data?.rooms || [])
+      const params = { status: 'waiting', limit: 20 }
+      if (boardType) params.boardType = boardType
+      const data = await playApi.listRooms(params)
+      const rawList = data?.rooms || []
+      const filtered = boardType
+        ? rawList.filter((r) => {
+            const type = r.boardType || r.game?.boardType || (r.variant === 'fox' ? 'achess' : 'chess')
+            return type === boardType
+          })
+        : rawList
+      setRooms(filtered)
       setError(null)
     } catch (err) {
       if (!silent) setError(err?.message || 'Could not load open rooms.')
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [boardType])
 
   useEffect(() => {
     loadRooms()
@@ -54,7 +65,11 @@ export function RoomLobby({
     setBusy(true)
     setError(null)
     try {
-      const res = await playApi.createRoom()
+      if (typeof onCreateRoom === 'function') {
+        await onCreateRoom()
+        return
+      }
+      const res = await playApi.createRoom(boardType ? { boardType } : {})
       const newRoomId = res?.room?.id || res?.id
       if (newRoomId) {
         onEnterRoom(newRoomId)
@@ -111,24 +126,34 @@ export function RoomLobby({
         </p>
       ) : (
         <ul className={styles.list}>
-          {rooms.map((room) => (
-            <li key={room.id} className={styles.row}>
-              <div className={styles.rowMain}>
-                <span className={styles.host}>{hostName(room)}</span>
-                <span className={styles.meta}>
-                  {timeControl(room)} · {formatDateTime(room.createdAt)}
-                </span>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleJoin(room.id)}
-                disabled={busy}
-              >
-                Join
-              </Button>
-            </li>
-          ))}
+          {rooms.map((room) => {
+            const isFox =
+              room.boardType === 'achess' ||
+              room.game?.boardType === 'achess' ||
+              room.variant === 'fox' ||
+              room.game?.variant === 'fox'
+            return (
+              <li key={room.id} className={styles.row}>
+                <div className={styles.rowMain}>
+                  <div className={styles.hostLine}>
+                    <span className={styles.host}>{hostName(room)}</span>
+                    {isFox && <span className={styles.variantBadge}>10×10 Fox</span>}
+                  </div>
+                  <span className={styles.meta}>
+                    {timeControl(room)} · {formatDateTime(room.createdAt)}
+                  </span>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleJoin(room.id)}
+                  disabled={busy}
+                >
+                  Join
+                </Button>
+              </li>
+            )
+          })}
         </ul>
       )}
 

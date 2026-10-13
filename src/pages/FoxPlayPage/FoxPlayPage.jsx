@@ -13,6 +13,7 @@ import { Modal } from '../../components/common/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { useFoxChessGame } from '../../hooks/useFoxChessGame'
 import { useFoxPlayRoom } from '../../hooks/useFoxPlayRoom'
+import { FoxChess } from '../../services/foxChessEngine'
 import { ROUTES } from '../../utils/constants'
 import { cx } from '../../utils/helpers'
 import styles from './FoxPlayPage.module.css'
@@ -37,6 +38,7 @@ function PlayerRow({ label, name, you, active }) {
 // Online Fox Chess Room View (Connected via WebSocket & REST to backend API)
 // ---------------------------------------------------------------------------
 function FoxRoomView({ roomId, onLeave }) {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const game = useFoxPlayRoom({ roomId, currentUserId: user?.id })
   const [confirmResign, setConfirmResign] = useState(false)
@@ -44,6 +46,17 @@ function FoxRoomView({ roomId, onLeave }) {
   const [justStarted, setJustStarted] = useState(false)
   const [showRules, setShowRules] = useState(false)
   const prevStatusRef = useRef(game.gameStatus)
+
+  const roomBoardType =
+    game.room?.boardType ||
+    game.room?.game?.boardType ||
+    (game.room?.variant === 'chess' ? 'chess' : null)
+
+  useEffect(() => {
+    if (roomBoardType === 'chess') {
+      navigate(`/play/${roomId}`, { replace: true })
+    }
+  }, [roomBoardType, roomId, navigate])
 
   useEffect(() => {
     if (prevStatusRef.current === 'waiting' && game.gameStatus === 'active') {
@@ -518,7 +531,20 @@ export function FoxPlayPage() {
     setCreatingRoom(true)
     setCreateError(null)
     try {
-      const res = await playApi.createRoom()
+      const initialEngine = new FoxChess()
+      const initialState = {
+        boardType: 'achess',
+        variant: 'fox',
+        fen: initialEngine.fen(),
+        turn: initialEngine.turn(),
+        history: [],
+        captured: { white: [], black: [] },
+      }
+      const res = await playApi.createRoom({
+        boardType: 'achess',
+        variant: 'fox',
+        state: initialState,
+      })
       const newRoomId = res?.room?.id || res?.id
       if (newRoomId) {
         navigate(`/play/fox/${newRoomId}`)
@@ -603,10 +629,12 @@ export function FoxPlayPage() {
             </div>
 
             <RoomLobby
+              boardType="achess"
               title="10×10 Fox Chess Rooms"
               eyebrow="Multiplayer Arena"
               createLabel="Create a room"
               emptyText="No open Fox Chess rooms right now. Click 'Create a room' and the next player who joins takes the black seat!"
+              onCreateRoom={handleCreateRoom}
               onEnterRoom={(id) => navigate(`/play/fox/${id}`)}
             />
           </>

@@ -11,17 +11,17 @@ function withQuery(path, params = {}) {
   return query ? `${path}?${query}` : path
 }
 
-export function listRooms({ status = 'waiting', limit = 20, cursor } = {}) {
-  return httpClient.get(withQuery('/play/rooms', { status, limit, cursor }))
+export function listRooms({ status = 'waiting', limit = 20, cursor, boardType } = {}) {
+  return httpClient.get(withQuery('/play/rooms', { status, limit, cursor, boardType }))
 }
 
 export function createRoom(payload) {
-  const body =
-    typeof payload === 'string'
-      ? { gameId: payload }
-      : payload?.gameId
-        ? { gameId: payload.gameId }
-        : {}
+  let body = {}
+  if (typeof payload === 'string') {
+    body = { gameId: payload }
+  } else if (payload && typeof payload === 'object') {
+    body = { ...payload }
+  }
   return httpClient.post('/play/rooms', body)
 }
 
@@ -37,9 +37,14 @@ export function getGameMoves(gameId) {
   return httpClient.get(`/games/${gameId}/moves`)
 }
 
-export function makeRoomMove(id, { from, to, promotion }) {
+export function makeRoomMove(id, { from, to, promotion, state, clientState }) {
   const body = { from, to }
   if (promotion) body.promotion = promotion
+  const payloadState = state !== undefined ? state : clientState
+  if (payloadState !== undefined) {
+    body.state = payloadState
+    body.clientState = payloadState
+  }
   return httpClient.post(`/play/rooms/${id}/moves`, body)
 }
 

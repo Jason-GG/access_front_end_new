@@ -34,12 +34,24 @@ function PlayerRow({ label, name, you, active }) {
 }
 
 function RoomView({ roomId, onLeave }) {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const game = usePlayRoom({ roomId, currentUserId: user?.id })
   const [confirmResign, setConfirmResign] = useState(false)
   const [copied, setCopied] = useState(false)
   const [justStarted, setJustStarted] = useState(false)
   const prevStatusRef = useRef(game.gameStatus)
+
+  const roomBoardType =
+    game.room?.boardType ||
+    game.room?.game?.boardType ||
+    (game.room?.variant === 'fox' ? 'achess' : null)
+
+  useEffect(() => {
+    if (roomBoardType === 'achess') {
+      navigate(`/play/fox/${roomId}`, { replace: true })
+    }
+  }, [roomBoardType, roomId, navigate])
 
   useEffect(() => {
     if (prevStatusRef.current === 'waiting' && game.gameStatus === 'active') {
@@ -319,7 +331,7 @@ export function PlayPage() {
             </Button>
           </div>
         </header>
-        <RoomLobby onEnterRoom={(id) => navigate(`/play/${id}`)} />
+        <RoomLobby boardType="chess" onEnterRoom={(id) => navigate(`/play/${id}`)} />
       </div>
     </section>
   )
