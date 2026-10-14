@@ -226,7 +226,13 @@ function reconstructFoxEngine(rawMoves = [], candidateStates = []) {
   return engine
 }
 
-export function useFoxPlayRoom({ roomId, currentUserId, currentUserRole, enabled = true }) {
+export function useFoxPlayRoom({
+  roomId,
+  currentUserId,
+  currentUsername,
+  currentUserRole,
+  enabled = true,
+}) {
   const roomStorageKey = roomId ? `${STORAGE_KEYS.roomStatePrefix}fox:${roomId}` : null
 
   const engineRef = useRef(null)
@@ -791,7 +797,11 @@ export function useFoxPlayRoom({ roomId, currentUserId, currentUserRole, enabled
 
   const engine = engineRef.current
   const turn = engine.turn()
-  const myMember = members.find((member) => sameId(getMemberUserId(member), currentUserId))
+  const myMember = members.find(
+    (member) =>
+      sameId(getMemberUserId(member), currentUserId) ||
+      (currentUsername && sameId(member?.username || member?.user?.username, currentUsername)),
+  )
   const mySeat = myMember?.seat || room?.seat || joinedSeat || null
 
   const whitePlayer = useMemo(() => {
@@ -818,7 +828,9 @@ export function useFoxPlayRoom({ roomId, currentUserId, currentUserRole, enabled
   const canDeleteRoom = Boolean(
     mySeat === 'white' ||
       sameId(whitePlayer?.id, currentUserId) ||
-      currentUserRole === 'admin',
+      (currentUsername && sameId(whitePlayer?.username, currentUsername)) ||
+      sameId(currentUserRole, 'admin') ||
+      sameId(currentUsername, 'admin'),
   )
   const isMyTurn =
     isPlayer &&
@@ -957,13 +969,23 @@ export function useFoxPlayRoom({ roomId, currentUserId, currentUserRole, enabled
   const resign = useCallback(() => runAction(() => playApi.resignRoom(roomId)), [roomId, runAction])
   const abort = useCallback(() => runAction(() => playApi.abortRoom(roomId)), [roomId, runAction])
   const deleteRoom = useCallback(async () => {
-    if (!roomId) return null
-    roomDeletedRef.current = true
-    if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+    if (!roomId) return false
+    setError(null)
     try {
-      return await playApi.deleteRoom(roomId)
-    } catch {
-      return null
+      await playApi.deleteRoom(roomId)
+      roomDeletedRef.current = true
+      setRoomDeleted(true)
+      if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+      return true
+    } catch (err) {
+      if (err?.status === 404) {
+        roomDeletedRef.current = true
+        setRoomDeleted(true)
+        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+        return true
+      }
+      setError(err?.message || 'Could not remove room.')
+      return false
     }
   }, [roomId, roomStorageKey])
   const requestTakeback = useCallback(

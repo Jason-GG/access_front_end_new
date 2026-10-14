@@ -3,6 +3,7 @@
 # ssh root@101.37.105.86
 
 # scp /Users/sjian/Documents/projects/element-plus-admin/dist.zip root@101.37.105.86:/root/
+npm run build
 rm -rf dist.zip
 zip -r dist.zip dist/*
 scp dist.zip root@web:/root/

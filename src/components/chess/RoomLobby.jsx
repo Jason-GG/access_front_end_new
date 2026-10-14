@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as playApi from '../../api/playApi'
-import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/helpers'
 import { Button } from '../common/Button'
 import { Loader } from '../common/Loader'
 import styles from './RoomLobby.module.css'
 
 const POLL_MS = 5000
-
-function sameId(a, b) {
-  return a != null && b != null && String(a) === String(b)
-}
 
 function hostMember(room) {
   return room.members?.find((member) => member.seat === 'white')
@@ -19,14 +14,6 @@ function hostMember(room) {
 function hostName(room) {
   const white = hostMember(room)
   return white?.user?.username || white?.username || 'A player'
-}
-
-function canUserDeleteRoom(room, user) {
-  if (!user) return false
-  if (user.role === 'admin') return true
-  const white = hostMember(room)
-  const whiteId = white?.user?.id || white?.userId || room.createdById || room.created_by_id
-  return sameId(whiteId, user.id)
 }
 
 function timeControl(room) {
@@ -44,7 +31,6 @@ export function RoomLobby({
   createLabel = 'Create a room',
   emptyText,
 }) {
-  const { user } = useAuth()
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -119,14 +105,18 @@ export function RoomLobby({
   }
 
   async function handleDelete(id) {
-    if (!id || deletingId) return
-    setDeletingId(id)
+    const target = (id || joinId).trim()
+    if (!target || deletingId) return
+    setDeletingId(target)
     setError(null)
     try {
-      await playApi.deleteRoom(id)
-      setRooms((prev) => prev.filter((r) => r.id !== id))
+      await playApi.deleteRoom(target)
+      setRooms((prev) => prev.filter((r) => r.id !== target))
+      if (!id && joinId.trim() === target) {
+        setJoinId('')
+      }
     } catch (err) {
-      setError(err?.message || 'Could not delete that room.')
+      setError(err?.message || 'Could not remove that room.')
     } finally {
       setDeletingId(null)
     }
@@ -165,7 +155,6 @@ export function RoomLobby({
               room.game?.boardType === 'achess' ||
               room.variant === 'fox' ||
               room.game?.variant === 'fox'
-            const canDelete = canUserDeleteRoom(room, user)
             const isDeleting = deletingId === room.id
             return (
               <li key={room.id} className={styles.row}>
@@ -179,16 +168,14 @@ export function RoomLobby({
                   </span>
                 </div>
                 <div className={styles.rowActions}>
-                  {canDelete && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleDelete(room.id)}
-                      disabled={busy || isDeleting}
-                    >
-                      {isDeleting ? 'Deleting…' : 'Delete room'}
-                    </Button>
-                  )}
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleDelete(room.id)}
+                    disabled={busy || isDeleting}
+                  >
+                    {isDeleting ? 'Deleting…' : 'Delete room'}
+                  </Button>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -215,9 +202,16 @@ export function RoomLobby({
         <Button
           variant="secondary"
           onClick={() => handleJoin()}
-          disabled={busy || !joinId.trim()}
+          disabled={busy || Boolean(deletingId) || !joinId.trim()}
         >
           Join by id
+        </Button>
+        <Button
+          variant="danger"
+          onClick={() => handleDelete()}
+          disabled={busy || Boolean(deletingId) || !joinId.trim()}
+        >
+          {deletingId && deletingId === joinId.trim() ? 'Deleting…' : 'Delete by id'}
         </Button>
       </div>
     </section>

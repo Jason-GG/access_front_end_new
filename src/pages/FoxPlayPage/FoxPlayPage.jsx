@@ -45,6 +45,7 @@ function FoxRoomView({ roomId, onLeave }) {
     roomId,
     currentUserId: user?.id,
     currentUserRole: user?.role,
+    currentUsername: user?.username,
   })
   const [confirmResign, setConfirmResign] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -57,10 +58,11 @@ function FoxRoomView({ roomId, onLeave }) {
   const handleDeleteRoom = useCallback(async () => {
     if (deleting) return
     setDeleting(true)
-    try {
-      await game.deleteRoom()
-    } finally {
+    const deleted = await game.deleteRoom()
+    if (deleted) {
       onLeave()
+    } else {
+      setDeleting(false)
     }
   }, [deleting, game, onLeave])
 
@@ -161,16 +163,14 @@ function FoxRoomView({ roomId, onLeave }) {
             <Button variant="secondary" size="sm" onClick={() => setShowRules(true)}>
               Rules & Moves
             </Button>
-            {game.canDeleteRoom && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDeleteRoom}
-                disabled={deleting || leaving}
-              >
-                {deleting ? 'Deleting…' : 'Delete room'}
-              </Button>
-            )}
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDeleteRoom}
+              disabled={deleting || leaving}
+            >
+              {deleting ? 'Deleting…' : 'Delete room'}
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -285,16 +285,14 @@ function FoxRoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
-              {game.canDeleteRoom && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={handleDeleteRoom}
-                  disabled={deleting || leaving}
-                >
-                  {deleting ? 'Deleting…' : 'Delete room'}
-                </Button>
-              )}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteRoom}
+                disabled={deleting || leaving}
+              >
+                {deleting ? 'Deleting…' : 'Delete room'}
+              </Button>
               <Button
                 variant="primary"
                 size="sm"
