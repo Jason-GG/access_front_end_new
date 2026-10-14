@@ -41,15 +41,12 @@ export function RoomLobby({
   const loadRooms = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true)
     try {
-      const params = { status: 'waiting', limit: 20 }
+      const params = { status: 'waiting', limit: 50 }
       if (boardType) params.boardType = boardType
       const data = await playApi.listRooms(params)
       const rawList = data?.rooms || []
       const filtered = boardType
-        ? rawList.filter((r) => {
-            const type = r.boardType || r.game?.boardType || (r.variant === 'fox' ? 'achess' : 'chess')
-            return type === boardType
-          })
+        ? rawList.filter((r) => playApi.getRoomBoardType(r) === boardType)
         : rawList
       setRooms(filtered)
       setError(null)
@@ -74,7 +71,15 @@ export function RoomLobby({
         await onCreateRoom()
         return
       }
-      const res = await playApi.createRoom(boardType ? { boardType } : {})
+      const createPayload =
+        boardType === 'achess'
+          ? { boardType: 'achess', variant: 'fox' }
+          : {
+              boardType: 'chess',
+              variant: 'chess',
+              state: { boardType: 'chess', variant: 'chess' },
+            }
+      const res = await playApi.createRoom(boardType ? createPayload : {})
       const newRoomId = res?.room?.id || res?.id
       if (newRoomId) {
         onEnterRoom(newRoomId)
@@ -94,6 +99,18 @@ export function RoomLobby({
     setBusy(true)
     setError(null)
     try {
+      if (boardType) {
+        const snap = await playApi.getRoom(target)
+        const targetType = playApi.getRoomBoardType(snap)
+        if (targetType !== boardType) {
+          setError(
+            boardType === 'achess'
+              ? 'This room is a Normal 8×8 Chess game. You can only open 10×10 Chess games from the 10×10 Chess room.'
+              : 'This room is a 10×10 Chess game. You can only open Normal 8×8 Chess games from the Normal Chess room.',
+          )
+          return
+        }
+      }
       const res = await playApi.joinRoom(target)
       const targetId = res?.room?.id || res?.id || target
       onEnterRoom(targetId)
@@ -150,18 +167,16 @@ export function RoomLobby({
       ) : (
         <ul className={styles.list}>
           {rooms.map((room) => {
-            const isFox =
-              room.boardType === 'achess' ||
-              room.game?.boardType === 'achess' ||
-              room.variant === 'fox' ||
-              room.game?.variant === 'fox'
+            const isFox = playApi.getRoomBoardType(room) === 'achess'
             const isDeleting = deletingId === room.id
             return (
               <li key={room.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <div className={styles.hostLine}>
                     <span className={styles.host}>{hostName(room)}</span>
-                    {isFox && <span className={styles.variantBadge}>10×10 Fox</span>}
+                    <span className={styles.variantBadge}>
+                      {isFox ? '10×10 Fox' : '8×8 Chess'}
+                    </span>
                   </div>
                   <span className={styles.meta}>
                     {timeControl(room)} · {formatDateTime(room.createdAt)}

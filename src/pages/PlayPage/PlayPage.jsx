@@ -34,7 +34,6 @@ function PlayerRow({ label, name, you, active }) {
 }
 
 function RoomView({ roomId, onLeave }) {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const game = usePlayRoom({
     roomId,
@@ -74,17 +73,6 @@ function RoomView({ roomId, onLeave }) {
       onLeave()
     }
   }, [game.roomDeleted, onLeave])
-
-  const roomBoardType =
-    game.room?.boardType ||
-    game.room?.game?.boardType ||
-    (game.room?.variant === 'fox' ? 'achess' : null)
-
-  useEffect(() => {
-    if (roomBoardType === 'achess') {
-      navigate(`/play/fox/${roomId}`, { replace: true })
-    }
-  }, [roomBoardType, roomId, navigate])
 
   useEffect(() => {
     if (prevStatusRef.current === 'waiting' && game.gameStatus === 'active') {
@@ -133,12 +121,36 @@ function RoomView({ roomId, onLeave }) {
     }
   }
 
+  if (game.wrongBoardType) {
+    return (
+      <section className={styles.page}>
+        <div className="container">
+          <header className={styles.header}>
+            <div>
+              <p className="eyebrow">Normal 8×8 Chess Room</p>
+              <h1 className={styles.title}>Cannot open 10×10 Chess game here</h1>
+            </div>
+            <div className={styles.headerActions}>
+              <Button variant="secondary" size="sm" onClick={onLeave}>
+                Back to Normal Chess rooms
+              </Button>
+            </div>
+          </header>
+          <div className={cx(styles.banner, styles.bannerError)}>
+            {game.error ||
+              'This room is a 10×10 Chess game. You can only open Normal 8×8 Chess games from the Normal Chess room.'}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className={styles.page}>
       <div className="container">
         <header className={styles.header}>
           <div>
-            <p className="eyebrow">Online room</p>
+            <p className="eyebrow">Online 8×8 room</p>
             <h1 className={styles.title}>
               {game.whitePlayer?.username || 'White'} vs {game.blackPlayer?.username || 'Black'}
             </h1>
@@ -374,19 +386,26 @@ export function PlayPage() {
       <div className="container">
         <header className={styles.header}>
           <div>
-            <p className="eyebrow">The play room</p>
-            <h1 className={styles.title}>Play</h1>
+            <p className="eyebrow">Standard 8×8 Chess</p>
+            <h1 className={styles.title}>Normal Chess Room</h1>
           </div>
           <div className={styles.headerActions}>
             <Button
               variant="secondary"
               onClick={() => navigate(ROUTES.foxPlay)}
             >
-              Play Fox Chess (10×10)
+              10×10 Chess Room
             </Button>
           </div>
         </header>
-        <RoomLobby boardType="chess" onEnterRoom={(id) => navigate(`/play/${id}`)} />
+        <RoomLobby
+          boardType="chess"
+          title="Normal 8×8 Chess Rooms"
+          eyebrow="Standard 8×8 Chess"
+          createLabel="Create 8×8 room"
+          emptyText="No open Normal 8×8 Chess rooms right now. Create one and the next player who joins takes the black seat."
+          onEnterRoom={(id) => navigate(`/play/${id}`)}
+        />
       </div>
     </section>
   )

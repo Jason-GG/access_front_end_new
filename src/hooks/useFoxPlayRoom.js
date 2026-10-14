@@ -261,6 +261,7 @@ export function useFoxPlayRoom({
   const [joined, setJoined] = useState(false)
   const [joinedSeat, setJoinedSeat] = useState(null)
   const [roomDeleted, setRoomDeleted] = useState(false)
+  const [wrongBoardType, setWrongBoardType] = useState(null)
   const [error, setError] = useState(null)
   const [chatError, setChatError] = useState(null)
   const [now, setNow] = useState(() => Date.now())
@@ -597,6 +598,7 @@ export function useFoxPlayRoom({
     let active = true
     setLoading(true)
     setError(null)
+    setWrongBoardType(null)
     setJoined(false)
 
     // Restore cached room state immediately if token is present
@@ -608,6 +610,17 @@ export function useFoxPlayRoom({
 
     ;(async () => {
       try {
+        const preSnap = await playApi.getRoom(roomId)
+        if (!active) return
+        const detectedType = playApi.getRoomBoardType(preSnap)
+        if (detectedType !== 'achess') {
+          setWrongBoardType(detectedType)
+          setError(
+            'This room is a Normal 8×8 Chess game. You can only open 10×10 Chess games from the 10×10 Chess room.',
+          )
+          return
+        }
+
         const joinRes = await playApi.joinRoom(roomId)
         if (!active) return
         if (joinRes?.seat) setJoinedSeat(joinRes.seat)
@@ -764,7 +777,7 @@ export function useFoxPlayRoom({
 
   // Poll waiting rooms until second player arrives
   useEffect(() => {
-    if (!enabled || !roomId || roomDeleted) return undefined
+    if (!enabled || !roomId || roomDeleted || wrongBoardType || !joined) return undefined
     const isWaiting =
       !room || room.status === 'waiting' || (room.members && room.members.length < 2)
     if (!isWaiting) return undefined
@@ -789,7 +802,7 @@ export function useFoxPlayRoom({
       clearInterval(id)
       window.removeEventListener('focus', poll)
     }
-  }, [enabled, roomId, room, roomDeleted, roomStorageKey, applySnapshot])
+  }, [enabled, roomId, room, roomDeleted, wrongBoardType, joined, roomStorageKey, applySnapshot])
 
   const members = useMemo(() => room?.members || [], [room?.members])
   const gameStatus = room?.status || (roomId ? 'waiting' : 'idle')
@@ -1033,6 +1046,7 @@ export function useFoxPlayRoom({
     isPlayer,
     canDeleteRoom,
     roomDeleted,
+    wrongBoardType,
     isMyTurn,
     canMove,
     orientation: mySeat === 'black' ? 'black' : 'white',

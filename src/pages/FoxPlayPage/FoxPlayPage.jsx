@@ -39,7 +39,6 @@ function PlayerRow({ label, name, you, active }) {
 // Online Fox Chess Room View (Connected via WebSocket & REST to backend API)
 // ---------------------------------------------------------------------------
 function FoxRoomView({ roomId, onLeave }) {
-  const navigate = useNavigate()
   const { user } = useAuth()
   const game = useFoxPlayRoom({
     roomId,
@@ -84,17 +83,6 @@ function FoxRoomView({ roomId, onLeave }) {
     }
   }, [game.roomDeleted, onLeave])
 
-  const roomBoardType =
-    game.room?.boardType ||
-    game.room?.game?.boardType ||
-    (game.room?.variant === 'chess' ? 'chess' : null)
-
-  useEffect(() => {
-    if (roomBoardType === 'chess') {
-      navigate(`/play/${roomId}`, { replace: true })
-    }
-  }, [roomBoardType, roomId, navigate])
-
   useEffect(() => {
     if (prevStatusRef.current === 'waiting' && game.gameStatus === 'active') {
       setJustStarted(true)
@@ -137,6 +125,30 @@ function FoxRoomView({ roomId, onLeave }) {
     Boolean(game.takeback) && !sameUser(game.takeback?.by, user?.id)
 
   const lastMove = game.history[game.history.length - 1]
+
+  if (game.wrongBoardType) {
+    return (
+      <section className={styles.page}>
+        <div className="container">
+          <header className={styles.header}>
+            <div>
+              <p className="eyebrow">10×10 Chess Room</p>
+              <h1 className={styles.title}>Cannot open Normal 8×8 Chess game here</h1>
+            </div>
+            <div className={styles.headerActions}>
+              <Button variant="secondary" size="sm" onClick={onLeave}>
+                Back to 10×10 Chess rooms
+              </Button>
+            </div>
+          </header>
+          <div className={cx(styles.banner, styles.bannerError)}>
+            {game.error ||
+              'This room is a Normal 8×8 Chess game. You can only open 10×10 Chess games from the 10×10 Chess room.'}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={styles.page}>
@@ -666,7 +678,7 @@ export function FoxPlayPage() {
               Rules & Moves
             </Button>
             <Button variant="secondary" size="sm" onClick={() => navigate(ROUTES.play)}>
-              Standard 8×8 Chess
+              Normal 8×8 Chess Room
             </Button>
           </div>
         </header>
@@ -703,9 +715,9 @@ export function FoxPlayPage() {
             <RoomLobby
               boardType="achess"
               title="10×10 Fox Chess Rooms"
-              eyebrow="Multiplayer Arena"
-              createLabel="Create a room"
-              emptyText="No open Fox Chess rooms right now. Click 'Create a room' and the next player who joins takes the black seat!"
+              eyebrow="10×10 Fox Chess"
+              createLabel="Create 10×10 room"
+              emptyText="No open 10×10 Fox Chess rooms right now. Click 'Create 10×10 room' and the next player who joins takes the black seat!"
               onCreateRoom={handleCreateRoom}
               onEnterRoom={(id) => navigate(`/play/fox/${id}`)}
             />
