@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CapturedPieces } from '../../components/chess/CapturedPieces'
 import { ChessBoard } from '../../components/chess/ChessBoard'
@@ -36,11 +36,42 @@ function PlayerRow({ label, name, you, active }) {
 function RoomView({ roomId, onLeave }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const game = usePlayRoom({ roomId, currentUserId: user?.id })
+  const game = usePlayRoom({
+    roomId,
+    currentUserId: user?.id,
+    currentUserRole: user?.role,
+  })
   const [confirmResign, setConfirmResign] = useState(false)
   const [copied, setCopied] = useState(false)
   const [justStarted, setJustStarted] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const prevStatusRef = useRef(game.gameStatus)
+
+  const handleDeleteRoom = useCallback(async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await game.deleteRoom()
+    } finally {
+      onLeave()
+    }
+  }, [deleting, game, onLeave])
+
+  const handleLeaveRoom = useCallback(async () => {
+    if (leaving || deleting) return
+    setLeaving(true)
+    if (game.canDeleteRoom && !game.roomDeleted) {
+      await game.deleteRoom()
+    }
+    onLeave()
+  }, [leaving, deleting, game, onLeave])
+
+  useEffect(() => {
+    if (game.roomDeleted) {
+      onLeave()
+    }
+  }, [game.roomDeleted, onLeave])
 
   const roomBoardType =
     game.room?.boardType ||
@@ -112,7 +143,22 @@ function RoomView({ roomId, onLeave }) {
           </div>
           <div className={styles.headerActions}>
             <span className={cx(styles.statusLine, 'notation')}>{statusText}</span>
-            <Button variant="secondary" size="sm" onClick={onLeave}>
+            {game.canDeleteRoom && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteRoom}
+                disabled={deleting || leaving}
+              >
+                {deleting ? 'Deleting…' : 'Delete room'}
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleLeaveRoom}
+              disabled={leaving || deleting}
+            >
               Leave
             </Button>
           </div>
@@ -219,11 +265,22 @@ function RoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
+              {game.canDeleteRoom && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteRoom}
+                  disabled={deleting || leaving}
+                >
+                  {deleting ? 'Deleting…' : 'Delete room'}
+                </Button>
+              )}
               <Button
                 variant="primary"
                 size="sm"
                 className={styles.controlButton}
-                onClick={onLeave}
+                onClick={handleLeaveRoom}
+                disabled={leaving || deleting}
               >
                 Leave room
               </Button>
@@ -295,10 +352,10 @@ function RoomView({ roomId, onLeave }) {
         </div>
       </Modal>
 
-      <Modal open={gameOver} title="Game over" onClose={onLeave}>
+      <Modal open={gameOver} title="Game over" onClose={handleLeaveRoom}>
         <p className={styles.modalResult}>{game.status?.label || 'Game over'}</p>
         <p className={styles.modalBody}>The result is saved to your history.</p>
-        <Button size="lg" className={styles.modalButton} onClick={onLeave}>
+        <Button size="lg" className={styles.modalButton} onClick={handleLeaveRoom} disabled={leaving}>
           Back to lobby
         </Button>
       </Modal>

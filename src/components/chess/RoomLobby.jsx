@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as playApi from '../../api/playApi'
+import { useAuth } from '../../hooks/useAuth'
 import { formatDateTime } from '../../utils/helpers'
 import { Button } from '../common/Button'
 import { Loader } from '../common/Loader'
@@ -7,9 +8,25 @@ import styles from './RoomLobby.module.css'
 
 const POLL_MS = 5000
 
+function sameId(a, b) {
+  return a != null && b != null && String(a) === String(b)
+}
+
+function hostMember(room) {
+  return room.members?.find((member) => member.seat === 'white')
+}
+
 function hostName(room) {
-  const white = room.members?.find((member) => member.seat === 'white')
+  const white = hostMember(room)
   return white?.user?.username || white?.username || 'A player'
+}
+
+function canUserDeleteRoom(room, user) {
+  if (!user) return false
+  if (user.role === 'admin') return true
+  const white = hostMember(room)
+  const whiteId = white?.user?.id || white?.userId || room.createdById || room.created_by_id
+  return sameId(whiteId, user.id)
 }
 
 function timeControl(room) {
@@ -27,9 +44,11 @@ export function RoomLobby({
   createLabel = 'Create a room',
   emptyText,
 }) {
+  const { user } = useAuth()
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState(null)
   const [joinId, setJoinId] = useState('')
 
@@ -99,6 +118,20 @@ export function RoomLobby({
     }
   }
 
+  async function handleDelete(id) {
+    if (!id || deletingId) return
+    setDeletingId(id)
+    setError(null)
+    try {
+      await playApi.deleteRoom(id)
+      setRooms((prev) => prev.filter((r) => r.id !== id))
+    } catch (err) {
+      setError(err?.message || 'Could not delete that room.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <section className={styles.panel}>
       <div className={styles.head}>
@@ -132,6 +165,8 @@ export function RoomLobby({
               room.game?.boardType === 'achess' ||
               room.variant === 'fox' ||
               room.game?.variant === 'fox'
+            const canDelete = canUserDeleteRoom(room, user)
+            const isDeleting = deletingId === room.id
             return (
               <li key={room.id} className={styles.row}>
                 <div className={styles.rowMain}>
@@ -143,14 +178,26 @@ export function RoomLobby({
                     {timeControl(room)} · {formatDateTime(room.createdAt)}
                   </span>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => handleJoin(room.id)}
-                  disabled={busy}
-                >
-                  Join
-                </Button>
+                <div className={styles.rowActions}>
+                  {canDelete && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDelete(room.id)}
+                      disabled={busy || isDeleting}
+                    >
+                      {isDeleting ? 'Deleting…' : 'Delete room'}
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleJoin(room.id)}
+                    disabled={busy || isDeleting}
+                  >
+                    Join
+                  </Button>
+                </div>
               </li>
             )
           })}

@@ -64,6 +64,10 @@ export function abortRoom(id) {
   return httpClient.post(`/play/rooms/${id}/abort`, {})
 }
 
+export function deleteRoom(id) {
+  return httpClient.del(`/play/rooms/${id}`)
+}
+
 export function listComments(id, { cursor, limit = 50 } = {}) {
   return httpClient.get(withQuery(`/play/rooms/${id}/comments`, { cursor, limit }))
 }

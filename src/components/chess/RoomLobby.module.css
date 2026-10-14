@@ -60,6 +60,12 @@
   min-width: 0;
 }
 
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .hostLine {
   display: flex;
   align-items: center;

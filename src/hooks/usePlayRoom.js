@@ -47,7 +47,7 @@ function extractUserId(...candidates) {
   return null
 }
 
-export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
+export function usePlayRoom({ roomId, currentUserId, currentUserRole, enabled = true }) {
   const roomStorageKey = roomId ? `${STORAGE_KEYS.roomStatePrefix}chess:${roomId}` : null
   const initialCached = useMemo(
     () => (roomStorageKey ? loadTokenScopedState(roomStorageKey) : null),
@@ -67,6 +67,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
   const [loading, setLoading] = useState(Boolean(roomId))
   const [joined, setJoined] = useState(false)
   const [joinedSeat, setJoinedSeat] = useState(null)
+  const [roomDeleted, setRoomDeleted] = useState(false)
   const [error, setError] = useState(null)
   const [chatError, setChatError] = useState(null)
   const [now, setNow] = useState(() => Date.now())
@@ -74,6 +75,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
   const fenRef = useRef(fen)
   const historyRef = useRef(history)
   const socketRef = useRef(null)
+  const roomDeletedRef = useRef(false)
   const handleMessageRef = useRef(() => {})
 
   const updateBoardState = useCallback(
@@ -297,6 +299,24 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
         return
       }
 
+      if (type === 'room.deleted' || type.includes('room.deleted') || type.includes('deleted')) {
+        roomDeletedRef.current = true
+        setRoomDeleted(true)
+        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+        setRoom((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'finished',
+                result: prev.result || 'aborted',
+              }
+            : prev,
+        )
+        setDrawOfferBy(null)
+        setTakeback(null)
+        return
+      }
+
       if (type.includes('finish') || type.includes('end') || type === 'result') {
         setRoom((prev) =>
           prev
@@ -318,7 +338,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
 
       if (msg.fen && Array.isArray(msg.members)) applySnapshot(msg)
     },
-    [applyMove, applySnapshot, addComment, refreshMoves, updateBoardState],
+    [roomStorageKey, applyMove, applySnapshot, addComment, refreshMoves, updateBoardState],
   )
 
   useEffect(() => {
@@ -441,7 +461,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
 
       socket.onclose = (event) => {
         socketRef.current = null
-        if (disposed) return
+        if (disposed || roomDeletedRef.current) return
 
         if (event.code === 1013) {
           setConnection('busy')
@@ -487,17 +507,22 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
 
   // Keep the "waiting for opponent" screen fresh until a second player joins.
   useEffect(() => {
-    if (!enabled || !roomId) return undefined
+    if (!enabled || !roomId || roomDeleted) return undefined
     const isWaiting =
       !room || room.status === 'waiting' || (room.members && room.members.length < 2)
     if (!isWaiting) return undefined
 
     const poll = async () => {
+      if (roomDeletedRef.current) return
       try {
         const snap = await playApi.getRoom(roomId)
         applySnapshot(snap)
-      } catch {
-        // ignore polling errors
+      } catch (err) {
+        if (err?.status === 404) {
+          roomDeletedRef.current = true
+          setRoomDeleted(true)
+          if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+        }
       }
     }
 
@@ -507,7 +532,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
       clearInterval(id)
       window.removeEventListener('focus', poll)
     }
-  }, [enabled, roomId, room, applySnapshot])
+  }, [enabled, roomId, room, roomDeleted, roomStorageKey, applySnapshot])
 
   const members = useMemo(() => room?.members || [], [room?.members])
   const gameStatus = room?.status || (roomId ? 'waiting' : 'idle')
@@ -546,6 +571,11 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
   }, [members])
 
   const isPlayer = mySeat === 'white' || mySeat === 'black'
+  const canDeleteRoom = Boolean(
+    mySeat === 'white' ||
+      sameId(whitePlayer?.id, currentUserId) ||
+      currentUserRole === 'admin',
+  )
   const isMyTurn =
     isPlayer &&
     gameStatus === 'active' &&
@@ -688,6 +718,16 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
   )
   const resign = useCallback(() => runAction(() => playApi.resignRoom(roomId)), [roomId, runAction])
   const abort = useCallback(() => runAction(() => playApi.abortRoom(roomId)), [roomId, runAction])
+  const deleteRoom = useCallback(async () => {
+    if (!roomId) return null
+    roomDeletedRef.current = true
+    if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+    try {
+      return await playApi.deleteRoom(roomId)
+    } catch {
+      return null
+    }
+  }, [roomId, roomStorageKey])
   const requestTakeback = useCallback(
     () => runAction(() => playApi.takebackRoom(roomId, 'request')),
     [roomId, runAction],
@@ -730,6 +770,8 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
     blackPlayer,
     mySeat,
     isPlayer,
+    canDeleteRoom,
+    roomDeleted,
     isMyTurn,
     canMove,
     orientation: mySeat === 'black' ? 'black' : 'white',
@@ -750,6 +792,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
     declineDraw,
     resign,
     abort,
+    deleteRoom,
     requestTakeback,
     acceptTakeback,
     declineTakeback,

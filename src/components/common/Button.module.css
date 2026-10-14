@@ -88,6 +88,17 @@
   background: var(--soft-cloud);
 }
 
+.danger {
+  background: rgba(211, 47, 47, 0.12);
+  color: var(--sale, #d32f2f);
+  border-color: rgba(211, 47, 47, 0.35);
+}
+
+.danger:hover:not(:disabled) {
+  background: rgba(211, 47, 47, 0.22);
+  color: var(--sale, #d32f2f);
+}
+
 .sm {
   height: 40px;
   padding: 0 20px;

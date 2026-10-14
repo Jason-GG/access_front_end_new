@@ -41,12 +41,46 @@ function PlayerRow({ label, name, you, active }) {
 function FoxRoomView({ roomId, onLeave }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const game = useFoxPlayRoom({ roomId, currentUserId: user?.id })
+  const game = useFoxPlayRoom({
+    roomId,
+    currentUserId: user?.id,
+    currentUserRole: user?.role,
+  })
   const [confirmResign, setConfirmResign] = useState(false)
   const [copied, setCopied] = useState(false)
   const [justStarted, setJustStarted] = useState(false)
   const [showRules, setShowRules] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const prevStatusRef = useRef(game.gameStatus)
+
+  const handleDeleteRoom = useCallback(async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      await game.deleteRoom()
+    } finally {
+      onLeave()
+    }
+  }, [deleting, game, onLeave])
+
+  const handleLeaveRoom = useCallback(async () => {
+    if (leaving || deleting) return
+    setLeaving(true)
+    try {
+      if (game.canDeleteRoom && !game.roomDeleted) {
+        await game.deleteRoom()
+      }
+    } finally {
+      onLeave()
+    }
+  }, [leaving, deleting, game, onLeave])
+
+  useEffect(() => {
+    if (game.roomDeleted) {
+      onLeave()
+    }
+  }, [game.roomDeleted, onLeave])
 
   const roomBoardType =
     game.room?.boardType ||
@@ -127,8 +161,23 @@ function FoxRoomView({ roomId, onLeave }) {
             <Button variant="secondary" size="sm" onClick={() => setShowRules(true)}>
               Rules & Moves
             </Button>
-            <Button variant="secondary" size="sm" onClick={onLeave}>
-              Leave
+            {game.canDeleteRoom && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteRoom}
+                disabled={deleting || leaving}
+              >
+                {deleting ? 'Deleting…' : 'Delete room'}
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleLeaveRoom}
+              disabled={leaving || deleting}
+            >
+              {leaving ? 'Leaving…' : 'Leave'}
             </Button>
           </div>
         </header>
@@ -236,11 +285,22 @@ function FoxRoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
+              {game.canDeleteRoom && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteRoom}
+                  disabled={deleting || leaving}
+                >
+                  {deleting ? 'Deleting…' : 'Delete room'}
+                </Button>
+              )}
               <Button
                 variant="primary"
                 size="sm"
                 className={styles.controlButton}
-                onClick={onLeave}
+                onClick={handleLeaveRoom}
+                disabled={leaving || deleting}
               >
                 Leave room
               </Button>
