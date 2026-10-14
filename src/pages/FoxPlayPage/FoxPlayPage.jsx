@@ -14,7 +14,8 @@ import { useAuth } from '../../hooks/useAuth'
 import { useFoxChessGame } from '../../hooks/useFoxChessGame'
 import { useFoxPlayRoom } from '../../hooks/useFoxPlayRoom'
 import { FoxChess } from '../../services/foxChessEngine'
-import { ROUTES } from '../../utils/constants'
+import { loadTokenScopedState, saveTokenScopedState } from '../../services/request'
+import { ROUTES, STORAGE_KEYS } from '../../utils/constants'
 import { cx } from '../../utils/helpers'
 import styles from './FoxPlayPage.module.css'
 
@@ -320,7 +321,9 @@ function FoxRoomView({ roomId, onLeave }) {
 // Offline / Practice View (Play vs House Bot or Local Pass & Play)
 // ---------------------------------------------------------------------------
 function FoxPracticeView({ playMode, setPlayMode }) {
-  const [orientation, setOrientation] = useState('white')
+  const [orientation, setOrientation] = useState(
+    () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.orientation || 'white',
+  )
 
   const {
     game,
@@ -522,10 +525,21 @@ export function FoxPlayPage() {
   const navigate = useNavigate()
   const { roomId } = useParams()
   const [searchParams] = useSearchParams()
-  const [playMode, setPlayMode] = useState('online') // 'online' | 'bot' | 'pass'
+  const [playMode, setPlayModeState] = useState(
+    () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.playMode || 'online',
+  ) // 'online' | 'bot' | 'pass'
   const [showRules, setShowRules] = useState(false)
   const [creatingRoom, setCreatingRoom] = useState(false)
   const [createError, setCreateError] = useState(null)
+
+  const setPlayMode = useCallback((nextMode) => {
+    setPlayModeState(nextMode)
+    const prev = loadTokenScopedState(STORAGE_KEYS.foxPracticeState) || {}
+    saveTokenScopedState(STORAGE_KEYS.foxPracticeState, {
+      ...prev,
+      playMode: nextMode,
+    })
+  }, [])
 
   const handleCreateRoom = useCallback(async () => {
     setCreatingRoom(true)

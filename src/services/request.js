@@ -76,11 +76,52 @@ export function storeTokens(accessToken, refreshToken) {
   }
 }
 
+export function clearStoredChessStates() {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.foxPracticeState)
+    localStorage.removeItem(STORAGE_KEYS.chessPracticeState)
+    const keysToRemove = []
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith(STORAGE_KEYS.roomStatePrefix)) {
+        keysToRemove.push(k)
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k))
+  } catch {
+    // ignore
+  }
+}
+
+export function loadTokenScopedState(key) {
+  if (!key || !getStoredAccessToken()) return null
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveTokenScopedState(key, value) {
+  if (!key || !getStoredAccessToken()) return
+  try {
+    if (value == null) {
+      localStorage.removeItem(key)
+    } else {
+      localStorage.setItem(key, JSON.stringify(value))
+    }
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
 export function clearStoredTokens() {
   try {
     localStorage.removeItem(STORAGE_KEYS.accessToken)
     localStorage.removeItem(STORAGE_KEYS.refreshToken)
     localStorage.removeItem(STORAGE_KEYS.session)
+    clearStoredChessStates()
   } catch {
     // ignore
   }

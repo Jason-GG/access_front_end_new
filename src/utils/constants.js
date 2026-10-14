@@ -18,6 +18,9 @@ export const STORAGE_KEYS = {
   session: 'access-chess:session',
   accessToken: 'access-chess:access-token',
   refreshToken: 'access-chess:refresh-token',
+  foxPracticeState: 'access-chess:fox-practice-state',
+  chessPracticeState: 'access-chess:chess-practice-state',
+  roomStatePrefix: 'access-chess:room-state:',
 }
 
 export const GAME = {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { GAME } from '../utils/constants'
+import { GAME, STORAGE_KEYS } from '../utils/constants'
 import {
   createGame,
   getCapturedPieces,
@@ -7,28 +7,76 @@ import {
   makeMove,
   pickBotMove,
 } from '../services/chessService'
+import { loadTokenScopedState, saveTokenScopedState } from '../services/request'
+
+function createInitialChessPracticeGame() {
+  const game = createGame()
+  const saved = loadTokenScopedState(STORAGE_KEYS.chessPracticeState)
+  if (!saved) return game
+
+  if (Array.isArray(saved.history) && saved.history.length > 0) {
+    let replayed = 0
+    for (const m of saved.history) {
+      try {
+        const res = m?.from && m?.to
+          ? game.move({ from: m.from, to: m.to, promotion: m.promotion || 'q' })
+          : m?.san
+            ? game.move(m.san)
+            : null
+        if (res) replayed++
+      } catch {
+        // ignore invalid move
+      }
+    }
+    if (replayed > 0) return game
+  }
+
+  if (saved.fen) {
+    try {
+      return createGame(saved.fen)
+    } catch {
+      return game
+    }
+  }
+
+  return game
+}
 
 export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey = 0 } = {}) {
   const gameRef = useRef(null)
   if (!gameRef.current) {
-    gameRef.current = createGame()
+    gameRef.current = createInitialChessPracticeGame()
   }
 
   const botTimerRef = useRef(null)
-  const [fen, setFen] = useState(gameRef.current.fen())
-  const [history, setHistory] = useState([])
-  const [captured, setCaptured] = useState({ white: [], black: [] })
-  const [status, setStatus] = useState(getGameStatus(gameRef.current))
-  const [turn, setTurn] = useState(gameRef.current.turn())
+  const initialVerbose = gameRef.current.history({ verbose: true })
+  const [fen, setFen] = useState(() => gameRef.current.fen())
+  const [history, setHistory] = useState(() => initialVerbose)
+  const [captured, setCaptured] = useState(() => getCapturedPieces(initialVerbose))
+  const [status, setStatus] = useState(() => getGameStatus(gameRef.current))
+  const [turn, setTurn] = useState(() => gameRef.current.turn())
 
   const sync = useCallback(() => {
     const game = gameRef.current
     const verbose = game.history({ verbose: true })
-    setFen(game.fen())
+    const nextFen = game.fen()
+    setFen(nextFen)
     setHistory(verbose)
     setCaptured(getCapturedPieces(verbose))
     setStatus(getGameStatus(game))
     setTurn(game.turn())
+    saveTokenScopedState(STORAGE_KEYS.chessPracticeState, {
+      fen: nextFen,
+      history: verbose.map((m) => ({
+        from: m.from,
+        to: m.to,
+        promotion: m.promotion,
+        san: m.san,
+        color: m.color,
+        piece: m.piece,
+        captured: m.captured,
+      })),
+    })
   }, [])
 
   const scheduleBotMove = useCallback(
@@ -90,9 +138,11 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     sync()
   }, [sync])
 
-  // Reset when a new game is requested (from the button or GameContext).
+  // Reset when a new game is explicitly requested (from the button or GameContext).
   useEffect(() => {
-    reset()
+    if (resetKey > 0) {
+      reset()
+    }
   }, [resetKey, reset])
 
   // Bot opens when the player chooses black.

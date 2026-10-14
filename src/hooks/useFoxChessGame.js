@@ -1,5 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FoxChess, pickFoxBotMove } from '../services/foxChessEngine'
+import { loadTokenScopedState, saveTokenScopedState } from '../services/request'
+import { STORAGE_KEYS } from '../utils/constants'
+
+function createInitialFoxPracticeGame() {
+  const engine = new FoxChess()
+  const saved = loadTokenScopedState(STORAGE_KEYS.foxPracticeState)
+  if (!saved) return engine
+
+  if (Array.isArray(saved.history) && saved.history.length > 0) {
+    let replayed = 0
+    for (const m of saved.history) {
+      if (m?.from && m?.to) {
+        const res = engine.move({
+          from: m.from,
+          to: m.to,
+          promotion: m.promotion || 'q',
+        })
+        if (res) replayed++
+      }
+    }
+    if (replayed > 0) return engine
+  }
+
+  if (saved.fen && engine.load(saved.fen)) {
+    if (saved.captured) {
+      engine.captured = {
+        w: [...(saved.captured.white || saved.captured.w || [])],
+        b: [...(saved.captured.black || saved.captured.b || [])],
+      }
+    }
+  }
+  return engine
+}
 
 export function useFoxChessGame({
   playMode = 'bot', // 'bot' | 'pass'
@@ -8,15 +41,44 @@ export function useFoxChessGame({
 } = {}) {
   const gameRef = useRef(null)
   if (!gameRef.current) {
-    gameRef.current = new FoxChess()
+    gameRef.current = createInitialFoxPracticeGame()
   }
 
   const botTimerRef = useRef(null)
   const [, setTick] = useState(0) // Force re-render on state mutation
 
+  const persistPracticeState = useCallback(
+    (mode = playMode, orient = orientation) => {
+      const game = gameRef.current
+      if (!game) return
+      const verboseHistory = game.history({ verbose: true }).map((m) => ({
+        from: m.from,
+        to: m.to,
+        promotion: m.promotion,
+        san: m.san,
+        color: m.color,
+        piece: m.piece,
+        captured: m.captured,
+      }))
+      saveTokenScopedState(STORAGE_KEYS.foxPracticeState, {
+        playMode: mode,
+        orientation: orient,
+        fen: game.fen(),
+        history: verboseHistory,
+        captured: { white: game.captured.w, black: game.captured.b },
+      })
+    },
+    [playMode, orientation],
+  )
+
   const sync = useCallback(() => {
+    persistPracticeState()
     setTick((t) => t + 1)
-  }, [])
+  }, [persistPracticeState])
+
+  useEffect(() => {
+    persistPracticeState(playMode, orientation)
+  }, [playMode, orientation, persistPracticeState])
 
   const scheduleBotMove = useCallback(
     (delay = botDelayMs) => {

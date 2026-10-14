@@ -8,10 +8,17 @@ import {
   getGameStatus,
   isDrawResult,
 } from '../services/chessService'
-import { getStoredAccessToken, getWebSocketBaseUrl } from '../services/request'
+import {
+  getStoredAccessToken,
+  getWebSocketBaseUrl,
+  loadTokenScopedState,
+  saveTokenScopedState,
+} from '../services/request'
+import { STORAGE_KEYS } from '../utils/constants'
 
 const WAITING_POLL_MS = 1500
 const CLOCK_TICK_MS = 500
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 function sameId(a, b) {
   if (a == null || b == null) return false
@@ -41,9 +48,17 @@ function extractUserId(...candidates) {
 }
 
 export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
+  const roomStorageKey = roomId ? `${STORAGE_KEYS.roomStatePrefix}chess:${roomId}` : null
+  const initialCached = useMemo(
+    () => (roomStorageKey ? loadTokenScopedState(roomStorageKey) : null),
+    [roomStorageKey],
+  )
+
   const [room, setRoom] = useState(null)
-  const [fen, setFen] = useState(null)
-  const [history, setHistory] = useState([])
+  const [fen, setFenState] = useState(() => initialCached?.fen || null)
+  const [history, setHistoryState] = useState(() =>
+    Array.isArray(initialCached?.history) ? initialCached.history : [],
+  )
   const [comments, setComments] = useState([])
   const [clockBase, setClockBase] = useState(null)
   const [drawOfferBy, setDrawOfferBy] = useState(null)
@@ -56,32 +71,69 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
   const [chatError, setChatError] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
+  const fenRef = useRef(fen)
+  const historyRef = useRef(history)
   const socketRef = useRef(null)
   const handleMessageRef = useRef(() => {})
 
-  const applySnapshot = useCallback((snap) => {
-    if (!snap || typeof snap !== 'object') return
-    const source = snap.room || snap.snapshot || snap.data || snap
-    if (!source || typeof source !== 'object') return
+  const updateBoardState = useCallback(
+    (nextFen, nextHistory) => {
+      if (nextFen !== undefined) {
+        fenRef.current = nextFen
+        setFenState(nextFen)
+      }
+      if (nextHistory !== undefined) {
+        historyRef.current = nextHistory
+        setHistoryState(nextHistory)
+      }
+      if (roomStorageKey && (fenRef.current || (historyRef.current && historyRef.current.length > 0))) {
+        saveTokenScopedState(roomStorageKey, {
+          fen: fenRef.current,
+          history: historyRef.current,
+        })
+      }
+    },
+    [roomStorageKey],
+  )
 
-    if (snap.seat) setJoinedSeat(snap.seat)
-    if (source.seat) setJoinedSeat(source.seat)
+  const applySnapshot = useCallback(
+    (snap) => {
+      if (!snap || typeof snap !== 'object') return
+      const source = snap.room || snap.snapshot || snap.data || snap
+      if (!source || typeof source !== 'object') return
 
-    setRoom((prev) => ({ ...(prev || {}), ...source }))
-    if (source.fen) setFen(source.fen)
-    if ('drawOfferBy' in source) setDrawOfferBy(source.drawOfferBy || null)
+      if (snap.seat) setJoinedSeat(snap.seat)
+      if (source.seat) setJoinedSeat(source.seat)
 
-    const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
-    const blackClock = source.clocks?.black ?? source.blackTimeMs ?? source.black_time_ms
-    if (whiteClock != null && blackClock != null) {
-      setClockBase({
-        white: Number(whiteClock),
-        black: Number(blackClock),
-        turn: turnFromFen(source.fen),
-        at: Date.now(),
-      })
-    }
-  }, [])
+      setRoom((prev) => ({ ...(prev || {}), ...source }))
+
+      const incomingFen =
+        source.clientState?.fen ||
+        source.state?.clientState?.fen ||
+        source.state?.fen ||
+        source.fen
+      const hasExistingMoves =
+        (historyRef.current && historyRef.current.length > 0) ||
+        (fenRef.current && fenRef.current !== START_FEN)
+      if (incomingFen && (!hasExistingMoves || incomingFen !== START_FEN)) {
+        updateBoardState(incomingFen, undefined)
+      }
+
+      if ('drawOfferBy' in source) setDrawOfferBy(source.drawOfferBy || null)
+
+      const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
+      const blackClock = source.clocks?.black ?? source.blackTimeMs ?? source.black_time_ms
+      if (whiteClock != null && blackClock != null) {
+        setClockBase({
+          white: Number(whiteClock),
+          black: Number(blackClock),
+          turn: turnFromFen(fenRef.current || incomingFen),
+          at: Date.now(),
+        })
+      }
+    },
+    [updateBoardState],
+  )
 
   const addComment = useCallback((comment) => {
     if (!comment || !comment.id) return
@@ -90,69 +142,102 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
     )
   }, [])
 
-  const applyMove = useCallback((msg) => {
-    const state = msg.state || {}
-    const moveData = msg.move?.move ?? msg.move ?? (msg.from || msg.san ? msg : null)
-    const nextFen = state.fen || msg.fen || msg.move?.fen || moveData?.fen
-    if (nextFen) setFen(nextFen)
+  const applyMove = useCallback(
+    (msg) => {
+      const state = msg.state || msg.clientState || {}
+      const moveData = msg.move?.move ?? msg.move ?? (msg.from || msg.san ? msg : null)
+      const serverFen = state.fen || msg.fen || msg.move?.fen || moveData?.fen
 
-    if (moveData) {
-      let moveObj = moveData
-      if (typeof moveData === 'string') {
-        moveObj = { san: moveData }
-      } else if (!moveData.san && moveData.from && moveData.to) {
-        try {
-          const c = new Chess(fen || undefined)
-          const m = c.move({
-            from: moveData.from,
-            to: moveData.to,
-            promotion: moveData.promotion || 'q',
-          })
-          if (m) moveObj = m
-        } catch {
-          // keep moveData
+      let computedFen = null
+      let nextHist = historyRef.current || []
+
+      if (moveData) {
+        const from = moveData.from
+        const to = moveData.to
+        const promotion = moveData.promotion || 'q'
+        const san = typeof moveData === 'string' ? moveData : moveData.san
+        const lastHist = nextHist[nextHist.length - 1]
+        const isDuplicate =
+          lastHist &&
+          ((from && to && lastHist.from === from && lastHist.to === to) ||
+            (san && lastHist.san === san))
+
+        if (!isDuplicate) {
+          let moveObj = typeof moveData === 'string' ? { san: moveData } : moveData
+          try {
+            const c = new Chess(fenRef.current || undefined)
+            const m =
+              from && to
+                ? c.move({ from, to, promotion })
+                : san
+                  ? c.move(san)
+                  : null
+            if (m) {
+              moveObj = m
+              computedFen = c.fen()
+            }
+          } catch {
+            // keep moveObj
+          }
+          nextHist = [...nextHist, moveObj]
         }
       }
-      setHistory((prev) => [...prev, moveObj])
-    }
 
-    const nextResult = state.result || msg.result
-    if (state.gameOver || nextResult) {
-      setRoom((prev) =>
-        prev ? { ...prev, status: 'finished', result: nextResult || prev.result } : prev,
-      )
-    }
+      const resolvedFen =
+        computedFen ||
+        (serverFen && (serverFen !== START_FEN || nextHist.length === 0) ? serverFen : null) ||
+        fenRef.current
+      updateBoardState(resolvedFen, nextHist)
 
-    const nextClocks = msg.clocks || state.clocks
-    if (nextClocks) {
-      setClockBase({
-        white: nextClocks.white ?? 0,
-        black: nextClocks.black ?? 0,
-        turn: turnFromFen(nextFen),
-        at: Date.now(),
-      })
-    }
-
-    setDrawOfferBy(null)
-    setTakeback(null)
-  }, [fen])
-
-  const refreshMoves = useCallback(async () => {
-    if (!roomId) return
-    try {
-      const snap = await playApi.getRoom(roomId)
-      applySnapshot(snap)
-      const targetGameId = snap?.gameId || snap?.room?.gameId || snap?.room?.game?.id
-      if (targetGameId) {
-        const data = await playApi.getGameMoves(targetGameId)
-        const built = buildHistoryFromMoves(data?.game?.moves || data?.moves || [])
-        setHistory(built.history)
-        if (built.fen) setFen(built.fen)
+      const nextResult = state.result || msg.result
+      if (state.gameOver || nextResult) {
+        setRoom((prev) =>
+          prev ? { ...prev, status: 'finished', result: nextResult || prev.result } : prev,
+        )
       }
-    } catch {
-      // A transient refresh failure should not break the live board.
-    }
-  }, [roomId, applySnapshot])
+
+      const nextClocks = msg.clocks || state.clocks
+      if (nextClocks) {
+        setClockBase({
+          white: nextClocks.white ?? 0,
+          black: nextClocks.black ?? 0,
+          turn: turnFromFen(resolvedFen),
+          at: Date.now(),
+        })
+      }
+
+      setDrawOfferBy(null)
+      setTakeback(null)
+    },
+    [updateBoardState],
+  )
+
+  const refreshMoves = useCallback(
+    async (trustServerCount = false) => {
+      if (!roomId) return
+      try {
+        const snap = await playApi.getRoom(roomId)
+        applySnapshot(snap)
+        const cached =
+          !trustServerCount && roomStorageKey ? loadTokenScopedState(roomStorageKey) : null
+        const targetGameId = snap?.gameId || snap?.room?.gameId || snap?.room?.game?.id
+        if (targetGameId) {
+          const data = await playApi.getGameMoves(targetGameId)
+          const rawMoves = data?.game?.moves || data?.moves || []
+          const built = buildHistoryFromMoves(rawMoves)
+          const cachedCount = Array.isArray(cached?.history) ? cached.history.length : 0
+          if (!trustServerCount && cachedCount > built.history.length && cached?.fen) {
+            updateBoardState(cached.fen, cached.history)
+          } else if (built.history.length > 0 || trustServerCount || !fenRef.current) {
+            updateBoardState(built.fen || START_FEN, built.history)
+          }
+        }
+      } catch {
+        // A transient refresh failure should not break the live board.
+      }
+    },
+    [roomId, roomStorageKey, applySnapshot, updateBoardState],
+  )
 
   const handleMessage = useCallback(
     (raw) => {
@@ -189,7 +274,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
           })
         } else if (type.includes('accept')) {
           setTakeback(null)
-          refreshMoves()
+          refreshMoves(true)
         } else {
           setTakeback(null)
         }
@@ -222,7 +307,10 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
               }
             : prev,
         )
-        if (msg.fen || msg.state?.fen) setFen(msg.fen || msg.state.fen)
+        const endFen = msg.fen || msg.state?.fen
+        if (endFen && (endFen !== START_FEN || (historyRef.current?.length ?? 0) === 0)) {
+          updateBoardState(endFen, undefined)
+        }
         setDrawOfferBy(null)
         setTakeback(null)
         return
@@ -230,7 +318,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
 
       if (msg.fen && Array.isArray(msg.members)) applySnapshot(msg)
     },
-    [applyMove, applySnapshot, addComment, refreshMoves],
+    [applyMove, applySnapshot, addComment, refreshMoves, updateBoardState],
   )
 
   useEffect(() => {
@@ -249,6 +337,11 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
     setError(null)
     setJoined(false)
 
+    const cached = roomStorageKey ? loadTokenScopedState(roomStorageKey) : null
+    if (cached?.fen) {
+      updateBoardState(cached.fen, Array.isArray(cached.history) ? cached.history : [])
+    }
+
     ;(async () => {
       try {
         const joinRes = await playApi.joinRoom(roomId)
@@ -259,14 +352,21 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
         if (!active) return
         applySnapshot(snap)
 
+        const cachedState = roomStorageKey ? loadTokenScopedState(roomStorageKey) : null
         const targetGameId = snap?.gameId || snap?.room?.gameId || snap?.room?.game?.id
         if (targetGameId) {
           const data = await playApi.getGameMoves(targetGameId)
           if (!active) return
           const rawMoves = data?.game?.moves || data?.moves || []
           const built = buildHistoryFromMoves(rawMoves)
-          setHistory(built.history)
-          if (built.fen) setFen((prev) => prev || built.fen)
+          const cachedCount = Array.isArray(cachedState?.history) ? cachedState.history.length : 0
+
+          if (cachedCount > built.history.length && cachedState?.fen) {
+            updateBoardState(cachedState.fen, cachedState.history)
+          } else if (built.history.length > 0 || !fenRef.current) {
+            updateBoardState(built.fen || START_FEN, built.history)
+          }
+
           if (data?.game?.status || data?.game?.result) {
             setRoom((prev) =>
               prev
@@ -292,7 +392,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
     return () => {
       active = false
     }
-  }, [enabled, roomId, applySnapshot])
+  }, [enabled, roomId, roomStorageKey, applySnapshot, updateBoardState])
 
   // Live connection. The JWT rides in the Sec-WebSocket-Protocol header, with
   // a ?token= fallback for servers that do not echo the subprotocol.
@@ -490,22 +590,66 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
     (from, to, promotion = 'q') => {
       if (!isPlayer || gameStatus !== 'active') return false
 
+      let executed = null
+      let nextFen = null
       try {
         const probe = new Chess(fen || undefined)
-        if (!probe.move({ from, to, promotion })) return false
+        executed = probe.move({ from, to, promotion })
+        if (!executed) return false
+        nextFen = probe.fen()
       } catch {
         return false
       }
 
+      const nextHistory = [
+        ...history,
+        {
+          san: executed.san,
+          from: executed.from,
+          to: executed.to,
+          color: executed.color,
+          piece: executed.piece,
+          captured: executed.captured,
+          promotion: executed.promotion,
+          ply: history.length + 1,
+        },
+      ]
+      updateBoardState(nextFen, nextHistory)
+
+      const nextStatePayload = {
+        fen: nextFen,
+        turn: executed.color === 'w' ? 'b' : 'w',
+        history: nextHistory,
+      }
+
       const socket = socketRef.current
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: 'move', from, to, promotion }))
+        socket.send(
+          JSON.stringify({
+            type: 'move',
+            from,
+            to,
+            promotion,
+            san: executed.san,
+            fen: nextFen,
+            state: nextStatePayload,
+            clientState: nextStatePayload,
+          }),
+        )
         return true
       }
 
       // REST fallback when WebSocket is unavailable or reconnecting
       playApi
-        .makeRoomMove(roomId, { from, to, promotion })
+        .makeRoomMove(roomId, {
+          from,
+          to,
+          promotion,
+          san: executed.san,
+          fen: nextFen,
+          state: nextStatePayload,
+          clientState: nextStatePayload,
+        })
         .then((res) => {
           if (res && !res.error) {
             applyMove(res)
@@ -517,7 +661,7 @@ export function usePlayRoom({ roomId, currentUserId, enabled = true }) {
 
       return true
     },
-    [isPlayer, gameStatus, fen, roomId, applyMove],
+    [isPlayer, gameStatus, fen, history, updateBoardState, roomId, applyMove],
   )
 
   const runAction = useCallback(async (fn) => {

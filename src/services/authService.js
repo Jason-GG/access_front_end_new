@@ -68,11 +68,15 @@ export async function fetchCurrentUser() {
       const user = normalizeUser(meResponse.user, readSession() || {})
       writeSession(user)
       return user
-    } catch {
-      // Token is invalid/expired and couldn't be refreshed
-      clearStoredTokens()
-      writeSession(null)
-      return null
+    } catch (err) {
+      if (err?.status === 401 || err?.status === 403) {
+        // Token is invalid/expired and couldn't be refreshed
+        clearStoredTokens()
+        writeSession(null)
+        return null
+      }
+      // On transient network errors, preserve existing session if token is still present
+      return getStoredAccessToken() ? readSession() : null
     }
   }
 }
