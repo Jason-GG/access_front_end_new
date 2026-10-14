@@ -39,3 +39,4 @@ coverage
 # Vite cache/timestamps
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+dist.zip
