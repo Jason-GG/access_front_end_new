@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as playApi from '../../api/playApi'
 import { useAuth } from '../../hooks/useAuth'
 import { FoxChess } from '../../services/foxChessEngine'
@@ -8,14 +8,81 @@ import { Loader } from '../common/Loader'
 import styles from './RoomLobby.module.css'
 
 const POLL_MS = 5000
+const DELETED_ROOMS_SESSION_KEY = 'achess_deleted_rooms'
+
+function getSessionDeletedRoomIds() {
+  try {
+    const raw = sessionStorage.getItem(DELETED_ROOMS_SESSION_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(parsed) ? parsed : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function addSessionDeletedRoomId(roomId) {
+  if (!roomId) return
+  try {
+    const set = getSessionDeletedRoomIds()
+    set.add(String(roomId))
+    sessionStorage.setItem(DELETED_ROOMS_SESSION_KEY, JSON.stringify(Array.from(set).slice(-200)))
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getMemberId(member) {
+  return member?.user?.id || member?.userId || member?.user_id || member?.id || null
+}
 
 function hostMember(room) {
-  return room.members?.find((member) => member.seat === 'white')
+  const members = Array.isArray(room?.members) ? room.members : []
+  const explicitOwnerId = room?.ownerId || room?.owner_id
+  if (explicitOwnerId) {
+    const found = members.find((m) => String(getMemberId(m)) === String(explicitOwnerId))
+    if (found) return found
+  }
+  const players = members.filter((m) => m.seat === 'white' || m.seat === 'black')
+  const candidates = players.length > 0 ? players : members
+  if (candidates.length === 0) return null
+  const sorted = [...candidates].sort((a, b) => {
+    const rawA = a.joinedAt || a.joined_at
+    const rawB = b.joinedAt || b.joined_at
+    const tA = rawA ? new Date(rawA).getTime() : 0
+    const tB = rawB ? new Date(rawB).getTime() : 0
+    if (tA !== tB) return tA - tB
+    if (a.seat === 'white' && b.seat !== 'white') return -1
+    if (b.seat === 'white' && a.seat !== 'white') return 1
+    return 0
+  })
+  return sorted[0] || null
 }
 
 function hostName(room) {
-  const white = hostMember(room)
-  return white?.user?.username || white?.username || 'A player'
+  const owner = hostMember(room)
+  return owner?.user?.username || owner?.username || 'A player'
+}
+
+function canUserDeleteRoom(room, user) {
+  if (!user) return false
+  if (
+    String(user.role || '').toLowerCase() === 'admin' ||
+    String(user.username || '').toLowerCase() === 'admin'
+  ) {
+    return true
+  }
+  const owner = hostMember(room)
+  const ownerId = room?.ownerId || room?.owner_id || getMemberId(owner)
+  const ownerUsername = owner?.user?.username || owner?.username
+  if (ownerId && user.id && String(ownerId) === String(user.id)) return true
+  if (
+    ownerUsername &&
+    user.username &&
+    String(ownerUsername).toLowerCase() === String(user.username).toLowerCase()
+  ) {
+    return true
+  }
+  return false
 }
 
 function isUserInRoom(room, user) {
@@ -52,6 +119,7 @@ export function RoomLobby({
   const [deletingId, setDeletingId] = useState(null)
   const [error, setError] = useState(null)
   const [joinId, setJoinId] = useState('')
+  const deletedIdsRef = useRef(getSessionDeletedRoomIds())
 
   const loadRooms = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true)
@@ -60,9 +128,15 @@ export function RoomLobby({
       if (boardType) params.boardType = boardType
       const data = await playApi.listRooms(params)
       const rawList = data?.rooms || []
+      const sessionDeleted = getSessionDeletedRoomIds()
+      sessionDeleted.forEach((id) => deletedIdsRef.current.add(id))
       const filtered = rawList.filter((r) => {
+        if (!r?.id || deletedIdsRef.current.has(String(r.id))) return false
+        if (r.deletedAt || r.deleted_at) return false
+        if (r.result || r.game?.result) return false
         if (boardType && playApi.getRoomBoardType(r) !== boardType) return false
         const roomStatus = r.game?.status || r.status || 'waiting'
+        if (roomStatus === 'finished') return false
         if (roomStatus === 'waiting') return true
         if (roomStatus === 'active' && isUserInRoom(r, user)) return true
         return false
@@ -163,12 +237,23 @@ export function RoomLobby({
     setError(null)
     try {
       await playApi.deleteRoom(target)
+      deletedIdsRef.current.add(String(target))
+      addSessionDeletedRoomId(target)
       setRooms((prev) => prev.filter((r) => r.id !== target))
       if (!id && joinId.trim() === target) {
         setJoinId('')
       }
     } catch (err) {
-      setError(err?.message || 'Could not remove that room.')
+      if (err?.status === 404) {
+        deletedIdsRef.current.add(String(target))
+        addSessionDeletedRoomId(target)
+        setRooms((prev) => prev.filter((r) => r.id !== target))
+        if (!id && joinId.trim() === target) {
+          setJoinId('')
+        }
+      } else {
+        setError(err?.message || 'Could not remove that room.')
+      }
     } finally {
       setDeletingId(null)
     }
@@ -220,14 +305,16 @@ export function RoomLobby({
                   </span>
                 </div>
                 <div className={styles.rowActions}>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDelete(room.id)}
-                    disabled={busy || isDeleting}
-                  >
-                    {isDeleting ? 'Deleting…' : 'Delete room'}
-                  </Button>
+                  {canUserDeleteRoom(room, user) && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDelete(room.id)}
+                      disabled={busy || isDeleting}
+                    >
+                      {isDeleting ? 'Deleting…' : 'Delete room'}
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     size="sm"

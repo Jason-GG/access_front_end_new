@@ -83,20 +83,39 @@ export function usePlayRoom({
   const historyRef = useRef(history)
   const socketRef = useRef(null)
   const roomDeletedRef = useRef(false)
+  const pendingMoveRef = useRef(false)
   const handleMessageRef = useRef(() => {})
   const refreshMovesRef = useRef(() => {})
 
   const updateBoardState = useCallback(
     (nextFen, nextHistory) => {
-      if (nextFen !== undefined) {
+      let changed = false
+      if (nextFen !== undefined && nextFen !== fenRef.current) {
         fenRef.current = nextFen
         setFenState(nextFen)
+        changed = true
       }
       if (nextHistory !== undefined) {
-        historyRef.current = nextHistory
-        setHistoryState(nextHistory)
+        const curLen = historyRef.current ? historyRef.current.length : -1
+        const nextLen = Array.isArray(nextHistory) ? nextHistory.length : -1
+        const curLast = curLen > 0 ? historyRef.current[curLen - 1] : null
+        const nextLast = nextLen > 0 ? nextHistory[nextLen - 1] : null
+        const histChanged =
+          curLen !== nextLen ||
+          curLast?.san !== nextLast?.san ||
+          curLast?.from !== nextLast?.from ||
+          curLast?.to !== nextLast?.to
+        if (histChanged) {
+          historyRef.current = nextHistory
+          setHistoryState(nextHistory)
+          changed = true
+        }
       }
-      if (roomStorageKey && (fenRef.current || (historyRef.current && historyRef.current.length > 0))) {
+      if (
+        changed &&
+        roomStorageKey &&
+        (fenRef.current || (historyRef.current && historyRef.current.length > 0))
+      ) {
         saveTokenScopedState(roomStorageKey, {
           fen: fenRef.current,
           history: historyRef.current,
@@ -150,13 +169,22 @@ export function usePlayRoom({
           source.initialFen || source.game?.state?.initialFen,
         )
         const currentCount = historyRef.current ? historyRef.current.length : 0
-        if (built.history.length >= currentCount) {
+        if (built.history.length >= currentCount || !pendingMoveRef.current) {
           const resolvedFen =
             (incomingFen && incomingFen !== START_FEN ? incomingFen : null) ||
             built.fen ||
             incomingFen ||
             START_FEN
           updateBoardState(resolvedFen, built.history)
+        }
+      } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !pendingMoveRef.current) {
+        const clientHistory = Array.isArray(source.clientState?.history)
+          ? source.clientState.history
+          : Array.isArray(source.state?.clientState?.history)
+            ? source.state.clientState.history
+            : []
+        if (incomingFen) {
+          updateBoardState(incomingFen, clientHistory)
         }
       } else {
         const clientHistory = Array.isArray(source.clientState?.history)
@@ -167,10 +195,14 @@ export function usePlayRoom({
         const hasExistingMoves =
           (historyRef.current && historyRef.current.length > 0) ||
           (fenRef.current && fenRef.current !== START_FEN)
-        if (incomingFen && (!hasExistingMoves || incomingFen !== START_FEN)) {
+        if (
+          incomingFen &&
+          (!hasExistingMoves || incomingFen !== START_FEN || !pendingMoveRef.current)
+        ) {
           updateBoardState(
             incomingFen,
-            clientHistory && clientHistory.length >= (historyRef.current?.length || 0)
+            clientHistory &&
+              (clientHistory.length >= (historyRef.current?.length || 0) || !pendingMoveRef.current)
               ? clientHistory
               : undefined,
           )
@@ -599,12 +631,11 @@ export function usePlayRoom({
     }
   }, [enabled, roomId, joined])
 
-  // Keep the "waiting for opponent" screen fresh until a second player joins.
+  // Poll room state during both waiting and active play so players behind
+  // proxies that block WebSockets still receive opponent moves in real time.
   useEffect(() => {
     if (!enabled || !roomId || roomDeleted || wrongBoardType || !joined) return undefined
-    const isWaiting =
-      !room || room.status === 'waiting' || (room.members && room.members.length < 2)
-    if (!isWaiting) return undefined
+    if (room?.status === 'finished') return undefined
 
     const poll = async () => {
       if (roomDeletedRef.current) return
@@ -626,7 +657,16 @@ export function usePlayRoom({
       clearInterval(id)
       window.removeEventListener('focus', poll)
     }
-  }, [enabled, roomId, room, roomDeleted, wrongBoardType, joined, roomStorageKey, applySnapshot])
+  }, [
+    enabled,
+    roomId,
+    room?.status,
+    roomDeleted,
+    wrongBoardType,
+    joined,
+    roomStorageKey,
+    applySnapshot,
+  ])
 
   const members = useMemo(() => room?.members || [], [room?.members])
   const gameStatus = room?.status || (roomId ? 'waiting' : 'idle')
@@ -669,10 +709,35 @@ export function usePlayRoom({
   }, [members])
 
   const isPlayer = mySeat === 'white' || mySeat === 'black'
+  const ownerMember = useMemo(() => {
+    const explicitOwnerId = room?.ownerId || room?.owner_id
+    if (explicitOwnerId) {
+      const found = members.find((m) => sameId(getMemberUserId(m), explicitOwnerId))
+      if (found) return found
+      return { userId: explicitOwnerId }
+    }
+    const players = members.filter((m) => m.seat === 'white' || m.seat === 'black')
+    const candidates = players.length > 0 ? players : members
+    if (candidates.length === 0) return null
+    const sorted = [...candidates].sort((a, b) => {
+      const rawA = a.joinedAt || a.joined_at
+      const rawB = b.joinedAt || b.joined_at
+      const tA = rawA ? new Date(rawA).getTime() : 0
+      const tB = rawB ? new Date(rawB).getTime() : 0
+      if (tA !== tB) return tA - tB
+      if (a.seat === 'white' && b.seat !== 'white') return -1
+      if (b.seat === 'white' && a.seat !== 'white') return 1
+      return 0
+    })
+    return sorted[0] || null
+  }, [room?.ownerId, room?.owner_id, members])
+
+  const ownerId = getMemberUserId(ownerMember) || room?.ownerId || room?.owner_id || null
+  const ownerUsername = ownerMember?.username || ownerMember?.user?.username || null
   const canDeleteRoom = Boolean(
-    mySeat === 'white' ||
-      sameId(whitePlayer?.id, currentUserId) ||
-      (currentUsername && sameId(whitePlayer?.username, currentUsername)) ||
+    (ownerId && sameId(ownerId, currentUserId)) ||
+      (ownerUsername && currentUsername && sameId(ownerUsername, currentUsername)) ||
+      (!ownerId && !ownerUsername && mySeat === 'white' && !blackPlayer) ||
       sameId(currentUserRole, 'admin') ||
       sameId(currentUsername, 'admin'),
   )
@@ -788,6 +853,7 @@ export function usePlayRoom({
 
       const movePayload = {
         type: 'move',
+        boardType: 'chess',
         from,
         to,
         ...(executed.promotion ? { promotion: executed.promotion } : {}),
@@ -799,22 +865,24 @@ export function usePlayRoom({
         clientState: nextStatePayload,
       }
 
-      const socket = socketRef.current
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(movePayload))
-        return true
-      }
-
-      // REST fallback when WebSocket is unavailable or reconnecting
+      pendingMoveRef.current = true
       playApi
         .makeRoomMove(roomId, movePayload)
         .then((res) => {
+          pendingMoveRef.current = false
           if (res && !res.error) {
             applyMove(res)
           }
         })
         .catch((err) => {
+          pendingMoveRef.current = false
+          const socket = socketRef.current
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(movePayload))
+            return
+          }
           setError(err?.message || 'Move could not be completed.')
+          refreshMovesRef.current(true)
         })
 
       return true
@@ -846,17 +914,50 @@ export function usePlayRoom({
   )
   const resign = useCallback(() => runAction(() => playApi.resignRoom(roomId)), [roomId, runAction])
   const abort = useCallback(() => runAction(() => playApi.abortRoom(roomId)), [roomId, runAction])
+  const leaveRoom = useCallback(async () => {
+    if (!roomId) return false
+    setError(null)
+    roomDeletedRef.current = true
+    if (socketRef.current) {
+      socketRef.current.onclose = null
+      try {
+        socketRef.current.close()
+      } catch {
+        // ignore
+      }
+      socketRef.current = null
+    }
+    try {
+      await playApi.leaveRoom(roomId)
+      return true
+    } catch {
+      return false
+    }
+  }, [roomId])
   const deleteRoom = useCallback(async () => {
     if (!roomId) return false
     setError(null)
+    const markSessionDeleted = () => {
+      try {
+        const raw = sessionStorage.getItem('achess_deleted_rooms')
+        const list = raw ? JSON.parse(raw) : []
+        const set = new Set(Array.isArray(list) ? list : [])
+        set.add(String(roomId))
+        sessionStorage.setItem('achess_deleted_rooms', JSON.stringify(Array.from(set).slice(-200)))
+      } catch {
+        // ignore storage errors
+      }
+    }
     try {
       await playApi.deleteRoom(roomId)
+      markSessionDeleted()
       roomDeletedRef.current = true
       setRoomDeleted(true)
       if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
       return true
     } catch (err) {
       if (err?.status === 404) {
+        markSessionDeleted()
         roomDeletedRef.current = true
         setRoomDeleted(true)
         if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
@@ -908,6 +1009,7 @@ export function usePlayRoom({
     blackPlayer,
     mySeat,
     isPlayer,
+    ownerId,
     canDeleteRoom,
     roomDeleted,
     wrongBoardType,
@@ -931,6 +1033,7 @@ export function usePlayRoom({
     declineDraw,
     resign,
     abort,
+    leaveRoom,
     deleteRoom,
     requestTakeback,
     acceptTakeback,

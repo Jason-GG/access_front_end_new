@@ -92,6 +92,10 @@ export function joinRoom(id) {
   return httpClient.post(`/play/rooms/${id}/join`, {})
 }
 
+export function leaveRoom(id) {
+  return httpClient.post(`/play/rooms/${id}/leave`, {})
+}
+
 export function getRoom(id) {
   return httpClient.get(`/play/rooms/${id}`)
 }
@@ -102,12 +106,27 @@ export function getGameMoves(gameId) {
 
 export function makeRoomMove(
   id,
-  { from, to, promotion, san, fen, gameOver, result, gameOverReason, state, clientState },
+  {
+    from,
+    to,
+    promotion,
+    san,
+    fen,
+    boardType,
+    variant,
+    gameOver,
+    result,
+    gameOverReason,
+    state,
+    clientState,
+  },
 ) {
   const body = { from, to }
   if (promotion) body.promotion = promotion
   if (san) body.san = san
   if (fen) body.fen = fen
+  if (boardType) body.boardType = boardType
+  if (variant) body.variant = variant
   if (gameOver !== undefined) body.gameOver = gameOver
   if (result) body.result = result
   if (gameOverReason) body.gameOverReason = gameOverReason

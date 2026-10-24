@@ -12,7 +12,10 @@ cd /root/
 rm -rf /root/dist
 unzip -o dist.zip -d /root/
 rm -rf /usr/share/nginx/html1/*
-mv /root/dist /usr/share/nginx/html1/
+cp -r /root/dist /usr/share/nginx/html1/
+rm -rf /var/www/html/*
+cp -r /root/dist/* /var/www/html/
+rm -rf /root/dist
 EOF
 
 

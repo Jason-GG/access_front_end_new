@@ -62,10 +62,13 @@ function RoomView({ roomId, onLeave }) {
   const handleLeaveRoom = useCallback(async () => {
     if (leaving || deleting) return
     setLeaving(true)
-    if (game.canDeleteRoom && !game.roomDeleted) {
-      await game.deleteRoom()
+    try {
+      if (!game.roomDeleted && typeof game.leaveRoom === 'function') {
+        await game.leaveRoom()
+      }
+    } finally {
+      onLeave()
     }
-    onLeave()
   }, [leaving, deleting, game, onLeave])
 
   useEffect(() => {
@@ -157,21 +160,23 @@ function RoomView({ roomId, onLeave }) {
           </div>
           <div className={styles.headerActions}>
             <span className={cx(styles.statusLine, 'notation')}>{statusText}</span>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={handleDeleteRoom}
-              disabled={deleting || leaving}
-            >
-              {deleting ? 'Deleting…' : 'Delete room'}
-            </Button>
+            {game.canDeleteRoom && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteRoom}
+                disabled={deleting || leaving}
+              >
+                {deleting ? 'Deleting…' : 'Delete room'}
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
               onClick={handleLeaveRoom}
               disabled={leaving || deleting}
             >
-              Leave
+              {leaving ? 'Leaving…' : 'Leave'}
             </Button>
           </div>
         </header>
@@ -277,14 +282,16 @@ function RoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDeleteRoom}
-                disabled={deleting || leaving}
-              >
-                {deleting ? 'Deleting…' : 'Delete room'}
-              </Button>
+              {game.canDeleteRoom && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteRoom}
+                  disabled={deleting || leaving}
+                >
+                  {deleting ? 'Deleting…' : 'Delete room'}
+                </Button>
+              )}
               <Button
                 variant="primary"
                 size="sm"
@@ -292,7 +299,7 @@ function RoomView({ roomId, onLeave }) {
                 onClick={handleLeaveRoom}
                 disabled={leaving || deleting}
               >
-                Leave room
+                {leaving ? 'Leaving…' : 'Leave room'}
               </Button>
             </div>
 

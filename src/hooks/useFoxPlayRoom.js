@@ -278,6 +278,9 @@ export function useFoxPlayRoom({
 
   const socketRef = useRef(null)
   const roomDeletedRef = useRef(false)
+  const pendingMoveRef = useRef(false)
+  const fenRef = useRef(fen)
+  const historyCountRef = useRef(history.length)
   const handleMessageRef = useRef(() => {})
   const refreshMovesRef = useRef(() => {})
 
@@ -290,11 +293,15 @@ export function useFoxPlayRoom({
       white: engine.captured?.w || [],
       black: engine.captured?.b || [],
     }
+    const changed =
+      nextFen !== fenRef.current || nextHistory.length !== historyCountRef.current
+    fenRef.current = nextFen
+    historyCountRef.current = nextHistory.length
     setFen(nextFen)
     setHistory(nextHistory)
     setCaptured(nextCaptured)
 
-    if (roomStorageKey && isValidFoxFen(nextFen)) {
+    if (changed && roomStorageKey && isValidFoxFen(nextFen)) {
       saveTokenScopedState(roomStorageKey, buildFoxClientState(engine))
     }
   }, [roomStorageKey])
@@ -337,30 +344,44 @@ export function useFoxPlayRoom({
         : null
     const state = extractClientState(source) || extractClientState(snap)
     const currentMoveCount = engineRef.current?.history?.()?.length ?? 0
+    const currentFen = engineRef.current?.fen?.() ?? INITIAL_FOX_FEN
 
     if (rawMoves && rawMoves.length > 0) {
       const latestMoveState = extractClientState(rawMoves[rawMoves.length - 1])
       const reconstructed = reconstructFoxEngine(rawMoves, [latestMoveState, state])
+      const reconCount = reconstructed.history().length
+      const reconFen = reconstructed.fen()
       if (
-        reconstructed.history().length >= currentMoveCount ||
-        (reconstructed.fen() !== INITIAL_FOX_FEN && engineRef.current.fen() === INITIAL_FOX_FEN)
+        (reconCount >= currentMoveCount ||
+          !pendingMoveRef.current ||
+          (reconFen !== INITIAL_FOX_FEN && currentFen === INITIAL_FOX_FEN)) &&
+        (reconFen !== currentFen || reconCount !== currentMoveCount)
       ) {
         engineRef.current = reconstructed
+        syncFromEngine()
+      }
+    } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !pendingMoveRef.current) {
+      if (state && isValidFoxFen(state.fen) && state.fen !== currentFen) {
+        applyClientStateToEngine(engineRef.current, state)
+        syncFromEngine()
+      } else if (currentMoveCount > 0 && (!state || state.fen === INITIAL_FOX_FEN)) {
+        engineRef.current = new FoxChess()
         syncFromEngine()
       }
     } else if (state && isValidFoxFen(state.fen)) {
       const incomingMoveCount = Array.isArray(state.history) ? state.history.length : 0
       const isIncomingInitial = state.fen === INITIAL_FOX_FEN && incomingMoveCount === 0
       if (
-        currentMoveCount === 0 ||
+        (currentMoveCount === 0 && state.fen !== currentFen) ||
         (!isIncomingInitial &&
-          (incomingMoveCount >= currentMoveCount || state.fen !== engineRef.current.fen()))
+          !pendingMoveRef.current &&
+          (incomingMoveCount > currentMoveCount || state.fen !== currentFen))
       ) {
         applyClientStateToEngine(engineRef.current, state)
         syncFromEngine()
       }
     } else if (isValidFoxFen(source.fen)) {
-      if (currentMoveCount === 0 && source.fen !== INITIAL_FOX_FEN) {
+      if (!pendingMoveRef.current && source.fen !== currentFen && source.fen !== INITIAL_FOX_FEN) {
         engineRef.current.load(source.fen)
         syncFromEngine()
       }
@@ -398,18 +419,9 @@ export function useFoxPlayRoom({
       const incomingState = extractClientState(msg) || extractClientState(msg?.state)
       const moveData = msg.move?.move ?? msg.move ?? (msg.from || msg.san ? msg : null)
       const engine = engineRef.current
+      let updated = false
 
-      if (incomingState && isValidFoxFen(incomingState.fen)) {
-        const currentFen = typeof engine.fen === 'function' ? engine.fen() : null
-        const currentCount = engine.history().length
-        const incomingCount = Array.isArray(incomingState.history)
-          ? incomingState.history.length
-          : 0
-        if (!currentFen || (currentFen !== incomingState.fen && incomingCount >= currentCount)) {
-          applyClientStateToEngine(engine, incomingState)
-          syncFromEngine()
-        }
-      } else if (moveData) {
+      if (moveData) {
         const from = moveData.from
         const to = moveData.to
         const promotion = moveData.promotion || 'q'
@@ -417,23 +429,50 @@ export function useFoxPlayRoom({
         const lastHist = engine.history()[engine.history().length - 1]
         const isDuplicate =
           lastHist &&
-          ((lastHist.from === from && lastHist.to === to) ||
+          ((from && to && lastHist.from === from && lastHist.to === to) ||
             (moveData.san && lastHist.san === moveData.san))
 
         if (!isDuplicate) {
           try {
-            if (from && to) {
-              engine.move({ from, to, promotion })
-            } else if (moveData.san) {
-              engine.move(moveData.san)
+            const moved =
+              from && to
+                ? engine.move({ from, to, promotion })
+                : moveData.san
+                  ? engine.move(moveData.san)
+                  : null
+            if (moved) {
+              updated = true
             }
           } catch {
-            if (isValidFoxFen(msg.fen || moveData.fen)) {
-              engine.load(msg.fen || moveData.fen)
-            }
+            // Fall through to incomingState / FEN load below
           }
-          syncFromEngine()
         }
+      }
+
+      if (incomingState && isValidFoxFen(incomingState.fen)) {
+        const currentFen = typeof engine.fen === 'function' ? engine.fen() : null
+        const currentCount = engine.history().length
+        const incomingCount = Array.isArray(incomingState.history)
+          ? incomingState.history.length
+          : 0
+        if (
+          !currentFen ||
+          currentFen !== incomingState.fen ||
+          incomingCount > currentCount
+        ) {
+          applyClientStateToEngine(engine, incomingState)
+          updated = true
+        }
+      } else if (!updated) {
+        const fallbackFen = msg.fen || msg.move?.fen || moveData?.fen
+        if (isValidFoxFen(fallbackFen) && fallbackFen !== engine.fen()) {
+          engine.load(fallbackFen)
+          updated = true
+        }
+      }
+
+      if (updated) {
+        syncFromEngine()
       }
 
       const nextResult =
@@ -832,12 +871,11 @@ export function useFoxPlayRoom({
     }
   }, [enabled, roomId, joined])
 
-  // Poll waiting rooms until second player arrives
+  // Poll room state during both waiting and active play so players behind
+  // proxies that block WebSockets still receive opponent moves in real time.
   useEffect(() => {
     if (!enabled || !roomId || roomDeleted || wrongBoardType || !joined) return undefined
-    const isWaiting =
-      !room || room.status === 'waiting' || (room.members && room.members.length < 2)
-    if (!isWaiting) return undefined
+    if (room?.status === 'finished') return undefined
 
     const poll = async () => {
       if (roomDeletedRef.current) return
@@ -859,7 +897,16 @@ export function useFoxPlayRoom({
       clearInterval(id)
       window.removeEventListener('focus', poll)
     }
-  }, [enabled, roomId, room, roomDeleted, wrongBoardType, joined, roomStorageKey, applySnapshot])
+  }, [
+    enabled,
+    roomId,
+    room?.status,
+    roomDeleted,
+    wrongBoardType,
+    joined,
+    roomStorageKey,
+    applySnapshot,
+  ])
 
   const members = useMemo(() => room?.members || [], [room?.members])
   const gameStatus = room?.status || (roomId ? 'waiting' : 'idle')
@@ -895,10 +942,35 @@ export function useFoxPlayRoom({
   }, [members])
 
   const isPlayer = mySeat === 'white' || mySeat === 'black'
+  const ownerMember = useMemo(() => {
+    const explicitOwnerId = room?.ownerId || room?.owner_id
+    if (explicitOwnerId) {
+      const found = members.find((m) => sameId(getMemberUserId(m), explicitOwnerId))
+      if (found) return found
+      return { userId: explicitOwnerId }
+    }
+    const players = members.filter((m) => m.seat === 'white' || m.seat === 'black')
+    const candidates = players.length > 0 ? players : members
+    if (candidates.length === 0) return null
+    const sorted = [...candidates].sort((a, b) => {
+      const rawA = a.joinedAt || a.joined_at
+      const rawB = b.joinedAt || b.joined_at
+      const tA = rawA ? new Date(rawA).getTime() : 0
+      const tB = rawB ? new Date(rawB).getTime() : 0
+      if (tA !== tB) return tA - tB
+      if (a.seat === 'white' && b.seat !== 'white') return -1
+      if (b.seat === 'white' && a.seat !== 'white') return 1
+      return 0
+    })
+    return sorted[0] || null
+  }, [room?.ownerId, room?.owner_id, members])
+
+  const ownerId = getMemberUserId(ownerMember) || room?.ownerId || room?.owner_id || null
+  const ownerUsername = ownerMember?.username || ownerMember?.user?.username || null
   const canDeleteRoom = Boolean(
-    mySeat === 'white' ||
-      sameId(whitePlayer?.id, currentUserId) ||
-      (currentUsername && sameId(whitePlayer?.username, currentUsername)) ||
+    (ownerId && sameId(ownerId, currentUserId)) ||
+      (ownerUsername && currentUsername && sameId(ownerUsername, currentUsername)) ||
+      (!ownerId && !ownerUsername && mySeat === 'white' && !blackPlayer) ||
       sameId(currentUserRole, 'admin') ||
       sameId(currentUsername, 'admin'),
   )
@@ -987,6 +1059,7 @@ export function useFoxPlayRoom({
       }
 
       if (clientState.isGameOver) {
+        payload.gameOver = true
         payload.result = clientState.result
         payload.gameOverReason = clientState.gameOverReason
         setRoom((prev) =>
@@ -994,21 +1067,24 @@ export function useFoxPlayRoom({
         )
       }
 
-      const socket = socketRef.current
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(payload))
-        return true
-      }
-
+      pendingMoveRef.current = true
       playApi
-        .makeRoomMove(roomId, { from, to, promotion, state: clientState, clientState })
+        .makeRoomMove(roomId, payload)
         .then((res) => {
+          pendingMoveRef.current = false
           if (res && !res.error) {
             applyMove(res)
           }
         })
         .catch((err) => {
+          pendingMoveRef.current = false
+          const socket = socketRef.current
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify(payload))
+            return
+          }
           setError(err?.message || 'Move could not be completed.')
+          refreshMovesRef.current(true)
         })
 
       return true
@@ -1040,17 +1116,50 @@ export function useFoxPlayRoom({
   )
   const resign = useCallback(() => runAction(() => playApi.resignRoom(roomId)), [roomId, runAction])
   const abort = useCallback(() => runAction(() => playApi.abortRoom(roomId)), [roomId, runAction])
+  const leaveRoom = useCallback(async () => {
+    if (!roomId) return false
+    setError(null)
+    roomDeletedRef.current = true
+    if (socketRef.current) {
+      socketRef.current.onclose = null
+      try {
+        socketRef.current.close()
+      } catch {
+        // ignore
+      }
+      socketRef.current = null
+    }
+    try {
+      await playApi.leaveRoom(roomId)
+      return true
+    } catch {
+      return false
+    }
+  }, [roomId])
   const deleteRoom = useCallback(async () => {
     if (!roomId) return false
     setError(null)
+    const markSessionDeleted = () => {
+      try {
+        const raw = sessionStorage.getItem('achess_deleted_rooms')
+        const list = raw ? JSON.parse(raw) : []
+        const set = new Set(Array.isArray(list) ? list : [])
+        set.add(String(roomId))
+        sessionStorage.setItem('achess_deleted_rooms', JSON.stringify(Array.from(set).slice(-200)))
+      } catch {
+        // ignore storage errors
+      }
+    }
     try {
       await playApi.deleteRoom(roomId)
+      markSessionDeleted()
       roomDeletedRef.current = true
       setRoomDeleted(true)
       if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
       return true
     } catch (err) {
       if (err?.status === 404) {
+        markSessionDeleted()
         roomDeletedRef.current = true
         setRoomDeleted(true)
         if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
@@ -1103,6 +1212,7 @@ export function useFoxPlayRoom({
     blackPlayer,
     mySeat,
     isPlayer,
+    ownerId,
     canDeleteRoom,
     roomDeleted,
     wrongBoardType,
@@ -1126,6 +1236,7 @@ export function useFoxPlayRoom({
     declineDraw,
     resign,
     abort,
+    leaveRoom,
     deleteRoom,
     requestTakeback,
     acceptTakeback,

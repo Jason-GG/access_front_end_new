@@ -69,8 +69,8 @@ function FoxRoomView({ roomId, onLeave }) {
     if (leaving || deleting) return
     setLeaving(true)
     try {
-      if (game.canDeleteRoom && !game.roomDeleted) {
-        await game.deleteRoom()
+      if (!game.roomDeleted && typeof game.leaveRoom === 'function') {
+        await game.leaveRoom()
       }
     } finally {
       onLeave()
@@ -175,14 +175,16 @@ function FoxRoomView({ roomId, onLeave }) {
             <Button variant="secondary" size="sm" onClick={() => setShowRules(true)}>
               Rules & Moves
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={handleDeleteRoom}
-              disabled={deleting || leaving}
-            >
-              {deleting ? 'Deleting…' : 'Delete room'}
-            </Button>
+            {game.canDeleteRoom && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDeleteRoom}
+                disabled={deleting || leaving}
+              >
+                {deleting ? 'Deleting…' : 'Delete room'}
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -297,14 +299,16 @@ function FoxRoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDeleteRoom}
-                disabled={deleting || leaving}
-              >
-                {deleting ? 'Deleting…' : 'Delete room'}
-              </Button>
+              {game.canDeleteRoom && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteRoom}
+                  disabled={deleting || leaving}
+                >
+                  {deleting ? 'Deleting…' : 'Delete room'}
+                </Button>
+              )}
               <Button
                 variant="primary"
                 size="sm"
@@ -312,7 +316,7 @@ function FoxRoomView({ roomId, onLeave }) {
                 onClick={handleLeaveRoom}
                 disabled={leaving || deleting}
               >
-                Leave room
+                {leaving ? 'Leaving…' : 'Leave room'}
               </Button>
             </div>
 
