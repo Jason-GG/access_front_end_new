@@ -6,8 +6,8 @@
 npm run build
 rm -rf dist.zip
 zip -r dist.zip dist/*
-scp dist.zip root@web:/root/
-ssh root@web << 'EOF'
+scp dist.zip root@139.159.186.80:/root/
+ssh root@139.159.186.80 << 'EOF'
 cd /root/
 rm -rf /root/dist
 unzip -o dist.zip -d /root/
