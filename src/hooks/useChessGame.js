@@ -145,9 +145,10 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     }
   }, [resetKey, reset])
 
-  // Bot opens when the player chooses black.
+  // Bot moves when it is the bot's turn (including on opening or after page refresh).
   useEffect(() => {
-    if (playMode === 'bot' && orientation === 'black' && history.length === 0 && turn === 'w') {
+    const botColor = orientation === 'white' ? 'b' : 'w'
+    if (playMode === 'bot' && !gameRef.current.isGameOver() && turn === botColor) {
       scheduleBotMove(GAME.botDelayMs)
     }
   }, [playMode, orientation, history.length, turn, scheduleBotMove])

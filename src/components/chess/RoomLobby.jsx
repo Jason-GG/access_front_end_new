@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as playApi from '../../api/playApi'
+import { useAuth } from '../../hooks/useAuth'
+import { FoxChess } from '../../services/foxChessEngine'
 import { formatDateTime } from '../../utils/helpers'
 import { Button } from '../common/Button'
 import { Loader } from '../common/Loader'
@@ -14,6 +16,18 @@ function hostMember(room) {
 function hostName(room) {
   const white = hostMember(room)
   return white?.user?.username || white?.username || 'A player'
+}
+
+function isUserInRoom(room, user) {
+  if (!user || !Array.isArray(room?.members)) return false
+  return room.members.some((m) => {
+    const uid = m?.user?.id || m?.userId || m?.id
+    const uname = m?.user?.username || m?.username
+    return (
+      (uid && user.id && String(uid) === String(user.id)) ||
+      (uname && user.username && String(uname).toLowerCase() === String(user.username).toLowerCase())
+    )
+  })
 }
 
 function timeControl(room) {
@@ -31,6 +45,7 @@ export function RoomLobby({
   createLabel = 'Create a room',
   emptyText,
 }) {
+  const { user } = useAuth()
   const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -41,13 +56,17 @@ export function RoomLobby({
   const loadRooms = useCallback(async ({ silent = false } = {}) => {
     if (!silent) setLoading(true)
     try {
-      const params = { status: 'waiting', limit: 50 }
+      const params = { status: 'waiting,active', limit: 50 }
       if (boardType) params.boardType = boardType
       const data = await playApi.listRooms(params)
       const rawList = data?.rooms || []
-      const filtered = boardType
-        ? rawList.filter((r) => playApi.getRoomBoardType(r) === boardType)
-        : rawList
+      const filtered = rawList.filter((r) => {
+        if (boardType && playApi.getRoomBoardType(r) !== boardType) return false
+        const roomStatus = r.game?.status || r.status || 'waiting'
+        if (roomStatus === 'waiting') return true
+        if (roomStatus === 'active' && isUserInRoom(r, user)) return true
+        return false
+      })
       setRooms(filtered)
       setError(null)
     } catch (err) {
@@ -55,7 +74,7 @@ export function RoomLobby({
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [boardType])
+  }, [boardType, user])
 
   useEffect(() => {
     loadRooms()
@@ -71,15 +90,31 @@ export function RoomLobby({
         await onCreateRoom()
         return
       }
-      const createPayload =
-        boardType === 'achess'
-          ? { boardType: 'achess', variant: 'fox' }
-          : {
-              boardType: 'chess',
-              variant: 'chess',
-              state: { boardType: 'chess', variant: 'chess' },
-            }
-      const res = await playApi.createRoom(boardType ? createPayload : {})
+      let createPayload = {}
+      if (boardType === 'achess') {
+        const initialEngine = new FoxChess()
+        const initialState = {
+          boardType: 'achess',
+          variant: 'fox',
+          fen: initialEngine.fen(),
+          turn: initialEngine.turn(),
+          history: [],
+          captured: { white: [], black: [] },
+        }
+        createPayload = {
+          boardType: 'achess',
+          variant: 'fox',
+          fen: initialEngine.fen(),
+          state: initialState,
+        }
+      } else if (boardType) {
+        createPayload = {
+          boardType: 'chess',
+          variant: 'chess',
+          state: { boardType: 'chess', variant: 'chess' },
+        }
+      }
+      const res = await playApi.createRoom(createPayload)
       const newRoomId = res?.room?.id || res?.id
       if (newRoomId) {
         onEnterRoom(newRoomId)
@@ -169,6 +204,7 @@ export function RoomLobby({
           {rooms.map((room) => {
             const isFox = playApi.getRoomBoardType(room) === 'achess'
             const isDeleting = deletingId === room.id
+            const isActiveRoom = (room.game?.status || room.status) === 'active'
             return (
               <li key={room.id} className={styles.row}>
                 <div className={styles.rowMain}>
@@ -179,6 +215,7 @@ export function RoomLobby({
                     </span>
                   </div>
                   <span className={styles.meta}>
+                    {isActiveRoom ? 'In progress · ' : ''}
                     {timeControl(room)} · {formatDateTime(room.createdAt)}
                   </span>
                 </div>
@@ -197,7 +234,7 @@ export function RoomLobby({
                     onClick={() => handleJoin(room.id)}
                     disabled={busy || isDeleting}
                   >
-                    Join
+                    {isActiveRoom ? 'Resume' : 'Join'}
                   </Button>
                 </div>
               </li>

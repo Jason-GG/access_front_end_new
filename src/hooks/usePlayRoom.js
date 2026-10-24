@@ -84,6 +84,7 @@ export function usePlayRoom({
   const socketRef = useRef(null)
   const roomDeletedRef = useRef(false)
   const handleMessageRef = useRef(() => {})
+  const refreshMovesRef = useRef(() => {})
 
   const updateBoardState = useCallback(
     (nextFen, nextHistory) => {
@@ -114,21 +115,82 @@ export function usePlayRoom({
       if (snap.seat) setJoinedSeat(snap.seat)
       if (source.seat) setJoinedSeat(source.seat)
 
-      setRoom((prev) => ({ ...(prev || {}), ...source }))
+      const mergedStatus = source.status || source.game?.status
+      const mergedResult = source.result || source.game?.result
+      setRoom((prev) => ({
+        ...(prev || {}),
+        ...source,
+        ...(mergedStatus ? { status: mergedStatus } : {}),
+        ...(mergedResult ? { result: mergedResult } : {}),
+      }))
+
+      const rawMoves = Array.isArray(source.moves)
+        ? source.moves
+        : Array.isArray(source.game?.moves)
+          ? source.game.moves
+          : null
 
       const incomingFen =
-        source.clientState?.fen ||
-        source.state?.clientState?.fen ||
+        (source.fen && source.fen !== START_FEN ? source.fen : null) ||
+        (source.state?.fen && source.state.fen !== START_FEN ? source.state.fen : null) ||
+        (source.game?.state?.fen && source.game.state.fen !== START_FEN ? source.game.state.fen : null) ||
+        (source.clientState?.fen && source.clientState.fen !== START_FEN ? source.clientState.fen : null) ||
+        (source.state?.clientState?.fen && source.state.clientState.fen !== START_FEN
+          ? source.state.clientState.fen
+          : null) ||
+        source.fen ||
         source.state?.fen ||
-        source.fen
-      const hasExistingMoves =
-        (historyRef.current && historyRef.current.length > 0) ||
-        (fenRef.current && fenRef.current !== START_FEN)
-      if (incomingFen && (!hasExistingMoves || incomingFen !== START_FEN)) {
-        updateBoardState(incomingFen, undefined)
+        source.game?.state?.fen ||
+        source.clientState?.fen ||
+        source.state?.clientState?.fen
+
+      if (rawMoves && rawMoves.length > 0) {
+        const built = buildHistoryFromMoves(
+          rawMoves,
+          source.initialFen || source.game?.state?.initialFen,
+        )
+        const currentCount = historyRef.current ? historyRef.current.length : 0
+        if (built.history.length >= currentCount) {
+          const resolvedFen =
+            (incomingFen && incomingFen !== START_FEN ? incomingFen : null) ||
+            built.fen ||
+            incomingFen ||
+            START_FEN
+          updateBoardState(resolvedFen, built.history)
+        }
+      } else {
+        const clientHistory = Array.isArray(source.clientState?.history)
+          ? source.clientState.history
+          : Array.isArray(source.state?.clientState?.history)
+            ? source.state.clientState.history
+            : null
+        const hasExistingMoves =
+          (historyRef.current && historyRef.current.length > 0) ||
+          (fenRef.current && fenRef.current !== START_FEN)
+        if (incomingFen && (!hasExistingMoves || incomingFen !== START_FEN)) {
+          updateBoardState(
+            incomingFen,
+            clientHistory && clientHistory.length >= (historyRef.current?.length || 0)
+              ? clientHistory
+              : undefined,
+          )
+        }
       }
 
-      if ('drawOfferBy' in source) setDrawOfferBy(source.drawOfferBy || null)
+      if ('drawOfferBy' in source || 'draw_offer_by' in source) {
+        setDrawOfferBy(source.drawOfferBy || source.draw_offer_by || null)
+      }
+      if ('takebackRequestBy' in source || 'takeback_request_by' in source) {
+        const tbBy = source.takebackRequestBy || source.takeback_request_by
+        setTakeback(
+          tbBy
+            ? {
+                by: tbBy,
+                expiresAt: source.takebackRequestedAt || source.takeback_requested_at || null,
+              }
+            : null,
+        )
+      }
 
       const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
       const blackClock = source.clocks?.black ?? source.blackTimeMs ?? source.black_time_ms
@@ -301,6 +363,12 @@ export function usePlayRoom({
         return
       }
 
+      if (type === 'error') {
+        if (msg.error) setError(msg.error)
+        refreshMoves(true)
+        return
+      }
+
       if (type.includes('move')) {
         applyMove(msg)
         return
@@ -351,6 +419,10 @@ export function usePlayRoom({
   useEffect(() => {
     handleMessageRef.current = handleMessage
   }, [handleMessage])
+
+  useEffect(() => {
+    refreshMovesRef.current = refreshMoves
+  }, [refreshMoves])
 
   // Join the room and load the initial snapshot, move list, and chat.
   useEffect(() => {
@@ -470,6 +542,9 @@ export function usePlayRoom({
 
       socket.onopen = () => {
         opened = true
+        if (attempts > 0) {
+          refreshMovesRef.current()
+        }
         attempts = 0
         setConnection('connected')
         setError(null)
@@ -647,9 +722,13 @@ export function usePlayRoom({
 
       let executed = null
       let nextFen = null
+      let probe = null
       try {
-        const probe = new Chess(fen || undefined)
-        executed = probe.move({ from, to, promotion })
+        probe = new Chess(fen || undefined)
+        const piece = probe.get(from)
+        const isPromo =
+          piece?.type === 'p' && (String(to).endsWith('8') || String(to).endsWith('1'))
+        executed = probe.move(isPromo ? { from, to, promotion: promotion || 'q' } : { from, to })
         if (!executed) return false
         nextFen = probe.fen()
       } catch {
@@ -671,40 +750,64 @@ export function usePlayRoom({
       ]
       updateBoardState(nextFen, nextHistory)
 
+      const isCheckmate = probe.isCheckmate()
+      const isStalemate = probe.isStalemate()
+      const isDraw = probe.isDraw()
+      const isGameOver = probe.isGameOver()
+      const computedResult = isCheckmate
+        ? executed.color === 'w'
+          ? 'white_checkmate'
+          : 'black_checkmate'
+        : isStalemate
+          ? 'stalemate'
+          : probe.isInsufficientMaterial()
+            ? 'insufficient_material'
+            : probe.isThreefoldRepetition()
+              ? 'threefold_repetition'
+              : isDraw
+                ? 'fifty_move_rule'
+                : null
+
       const nextStatePayload = {
         fen: nextFen,
         turn: executed.color === 'w' ? 'b' : 'w',
         history: nextHistory,
+        check: probe.isCheck(),
+        checkmate: isCheckmate,
+        stalemate: isStalemate,
+        draw: isDraw,
+        gameOver: isGameOver,
+        result: computedResult,
+      }
+
+      if (isGameOver) {
+        setRoom((prev) =>
+          prev ? { ...prev, status: 'finished', result: computedResult || prev.result } : prev,
+        )
+      }
+
+      const movePayload = {
+        type: 'move',
+        from,
+        to,
+        ...(executed.promotion ? { promotion: executed.promotion } : {}),
+        san: executed.san,
+        fen: nextFen,
+        gameOver: isGameOver,
+        ...(computedResult ? { result: computedResult } : {}),
+        state: nextStatePayload,
+        clientState: nextStatePayload,
       }
 
       const socket = socketRef.current
       if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(
-          JSON.stringify({
-            type: 'move',
-            from,
-            to,
-            promotion,
-            san: executed.san,
-            fen: nextFen,
-            state: nextStatePayload,
-            clientState: nextStatePayload,
-          }),
-        )
+        socket.send(JSON.stringify(movePayload))
         return true
       }
 
       // REST fallback when WebSocket is unavailable or reconnecting
       playApi
-        .makeRoomMove(roomId, {
-          from,
-          to,
-          promotion,
-          san: executed.san,
-          fen: nextFen,
-          state: nextStatePayload,
-          clientState: nextStatePayload,
-        })
+        .makeRoomMove(roomId, movePayload)
         .then((res) => {
           if (res && !res.error) {
             applyMove(res)

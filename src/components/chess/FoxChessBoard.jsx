@@ -5,6 +5,7 @@ import styles from './FoxChessBoard.module.css'
 
 export function FoxChessBoard({
   game,
+  fen: propFen,
   orientation = 'white',
   onPieceDrop,
   canDragPiece,
@@ -14,6 +15,7 @@ export function FoxChessBoard({
   const [selectedSquare, setSelectedSquare] = useState(null)
   const [draggingSquare, setDraggingSquare] = useState(null)
   const [promotionPending, setPromotionPending] = useState(null)
+  const currentFen = propFen || (typeof game?.fen === 'function' ? game.fen() : null)
 
   // Compute displayed rows and columns based on board orientation
   const isWhite = orientation === 'white'
@@ -38,21 +40,23 @@ export function FoxChessBoard({
   const legalMovesMap = useMemo(() => {
     if (!selectedSquare || !game) return {}
     void lastMove
+    void currentFen
     const moves = game.moves({ square: selectedSquare, verbose: true })
     const map = {}
     for (const m of moves) {
       map[m.to] = m
     }
     return map
-  }, [selectedSquare, game, lastMove])
+  }, [selectedSquare, game, lastMove, currentFen])
 
   // King currently in check square
   const checkKingSquare = useMemo(() => {
     void lastMove
+    void currentFen
     if (!game || !game.inCheck()) return null
     const king = game.findKing(game.turn())
     return king ? toSquare(king.f, king.r) : null
-  }, [game, lastMove])
+  }, [game, lastMove, currentFen])
 
   // Attempt move or open promotion dialog if applicable
   const tryMakeMove = useCallback(

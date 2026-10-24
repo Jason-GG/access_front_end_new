@@ -152,6 +152,10 @@ function buildFoxClientState(engine, executedMove = null, custom = {}) {
 function applyClientStateToEngine(engine, rawClientState) {
   const state = unwrapFoxState(rawClientState) || parseClientState(rawClientState)
   if (!state) return false
+  const prevHistory = Array.isArray(engine.moveHistory) ? [...engine.moveHistory] : []
+  const prevCaptured = engine.captured
+    ? { w: [...(engine.captured.w || [])], b: [...(engine.captured.b || [])] }
+    : { w: [], b: [] }
   let loaded = false
   if (isValidFoxFen(state.fen) && typeof engine.load === 'function') {
     loaded = Boolean(engine.load(state.fen))
@@ -161,9 +165,15 @@ function applyClientStateToEngine(engine, rawClientState) {
       w: [...(state.captured.white || state.captured.w || [])],
       b: [...(state.captured.black || state.captured.b || [])],
     }
+  } else if (loaded && prevCaptured) {
+    engine.captured = prevCaptured
   }
-  if (Array.isArray(state.history)) {
+  if (Array.isArray(state.history) && state.history.length > 0) {
     engine.moveHistory = [...state.history]
+  } else if (Array.isArray(state.history) && state.history.length === 0 && state.fen === INITIAL_FOX_FEN) {
+    engine.moveHistory = []
+  } else if (loaded && prevHistory.length > 0) {
+    engine.moveHistory = prevHistory
   }
   return loaded
 }
@@ -297,30 +307,71 @@ export function useFoxPlayRoom({
     if (snap.seat) setJoinedSeat(snap.seat)
     if (source.seat) setJoinedSeat(source.seat)
 
-    setRoom((prev) => ({ ...(prev || {}), ...source }))
-    if ('drawOfferBy' in source) setDrawOfferBy(source.drawOfferBy || null)
+    const mergedStatus = source.status || source.game?.status
+    const mergedResult = source.result || source.game?.result
+    setRoom((prev) => ({
+      ...(prev || {}),
+      ...source,
+      ...(mergedStatus ? { status: mergedStatus } : {}),
+      ...(mergedResult ? { result: mergedResult } : {}),
+    }))
+    if ('drawOfferBy' in source || 'draw_offer_by' in source) {
+      setDrawOfferBy(source.drawOfferBy || source.draw_offer_by || null)
+    }
+    if ('takebackRequestBy' in source || 'takeback_request_by' in source) {
+      const tbBy = source.takebackRequestBy || source.takeback_request_by
+      setTakeback(
+        tbBy
+          ? {
+              by: tbBy,
+              expiresAt: source.takebackRequestedAt || source.takeback_requested_at || null,
+            }
+          : null,
+      )
+    }
 
+    const rawMoves = Array.isArray(source.moves)
+      ? source.moves
+      : Array.isArray(source.game?.moves)
+        ? source.game.moves
+        : null
     const state = extractClientState(source) || extractClientState(snap)
     const currentMoveCount = engineRef.current?.history?.()?.length ?? 0
-    if (state && isValidFoxFen(state.fen)) {
-      const incomingMoveCount = Array.isArray(state.history) ? state.history.length : 0
-      const isIncomingInitial = state.fen === INITIAL_FOX_FEN && incomingMoveCount === 0
-      if (currentMoveCount === 0 || (!isIncomingInitial && incomingMoveCount >= currentMoveCount)) {
-        applyClientStateToEngine(engineRef.current, state)
+
+    if (rawMoves && rawMoves.length > 0) {
+      const latestMoveState = extractClientState(rawMoves[rawMoves.length - 1])
+      const reconstructed = reconstructFoxEngine(rawMoves, [latestMoveState, state])
+      if (
+        reconstructed.history().length >= currentMoveCount ||
+        (reconstructed.fen() !== INITIAL_FOX_FEN && engineRef.current.fen() === INITIAL_FOX_FEN)
+      ) {
+        engineRef.current = reconstructed
         syncFromEngine()
       }
-      if (state.result || state.gameOverReason || state.isGameOver) {
-        setRoom((prev) => ({
-          ...(prev || {}),
-          status: 'finished',
-          result: state.result || state.gameOverReason || prev?.result,
-        }))
+    } else if (state && isValidFoxFen(state.fen)) {
+      const incomingMoveCount = Array.isArray(state.history) ? state.history.length : 0
+      const isIncomingInitial = state.fen === INITIAL_FOX_FEN && incomingMoveCount === 0
+      if (
+        currentMoveCount === 0 ||
+        (!isIncomingInitial &&
+          (incomingMoveCount >= currentMoveCount || state.fen !== engineRef.current.fen()))
+      ) {
+        applyClientStateToEngine(engineRef.current, state)
+        syncFromEngine()
       }
     } else if (isValidFoxFen(source.fen)) {
       if (currentMoveCount === 0 && source.fen !== INITIAL_FOX_FEN) {
         engineRef.current.load(source.fen)
         syncFromEngine()
       }
+    }
+
+    if (state && (state.result || state.gameOverReason || state.isGameOver)) {
+      setRoom((prev) => ({
+        ...(prev || {}),
+        status: 'finished',
+        result: state.result || state.gameOverReason || prev?.result,
+      }))
     }
 
     const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
@@ -528,6 +579,12 @@ export function useFoxPlayRoom({
         } else {
           setDrawOfferBy(null)
         }
+        return
+      }
+
+      if (type === 'error') {
+        if (msg.error) setError(msg.error)
+        refreshMoves(true)
         return
       }
 
@@ -853,6 +910,8 @@ export function useFoxPlayRoom({
   const canMove = isMyTurn
 
   const status = useMemo(() => {
+    void fen
+    void history.length
     if (gameStatus === 'waiting') {
       return { kind: 'waiting', label: 'Waiting for an opponent to join' }
     }
@@ -875,7 +934,7 @@ export function useFoxPlayRoom({
       kind: 'active',
       label: `${turn === 'w' ? 'White' : 'Black'} to move`,
     }
-  }, [gameStatus, result, engine, turn])
+  }, [gameStatus, result, engine, turn, fen, history.length])
 
   const displayClocks = useMemo(() => {
     if (!clockBase) return null

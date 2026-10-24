@@ -155,17 +155,19 @@ export function useFoxChessGame({
     }
   }, [playMode, orientation, botDelayMs, scheduleBotMove, sync])
 
-  // Bot plays first if player chooses black
+  // Bot moves whenever it is the bot's turn (opening as White or resuming after page refresh)
+  const currentTurn = gameRef.current.turn()
+  const historyLen = gameRef.current.history().length
   useEffect(() => {
+    const botColor = orientation === 'white' ? 'b' : 'w'
     if (
       playMode === 'bot' &&
-      orientation === 'black' &&
-      gameRef.current.history().length === 0 &&
-      gameRef.current.turn() === 'w'
+      !gameRef.current.isGameOver() &&
+      currentTurn === botColor
     ) {
       scheduleBotMove(botDelayMs)
     }
-  }, [playMode, orientation, botDelayMs, scheduleBotMove])
+  }, [playMode, orientation, currentTurn, historyLen, botDelayMs, scheduleBotMove])
 
   useEffect(() => {
     return () => clearTimeout(botTimerRef.current)

@@ -25,7 +25,14 @@ const RESULT_LABELS = {
   aborted: 'Game aborted',
 }
 
-export function createGame() {
+export function createGame(fen) {
+  if (fen) {
+    try {
+      return new Chess(fen)
+    } catch {
+      return new Chess()
+    }
+  }
   return new Chess()
 }
 
@@ -62,28 +69,60 @@ export function getCapturedFromFen(fen) {
   return captured
 }
 
-export function buildHistoryFromMoves(rawMoves = []) {
-  const game = new Chess()
+export function buildHistoryFromMoves(rawMoves = [], initialFen) {
+  let game
+  try {
+    game = initialFen ? new Chess(initialFen) : new Chess()
+  } catch {
+    game = new Chess()
+  }
   const history = []
+  let lastValidFen = game.fen()
 
   for (const raw of rawMoves) {
-    const move = raw?.move ?? raw
+    const move = raw?.move?.move ?? raw?.move ?? raw
     let applied = null
     try {
       if (typeof move === 'string') {
         applied = game.move(move)
       } else if (move?.from && move?.to) {
-        applied = game.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' })
+        try {
+          applied = game.move(
+            move.promotion
+              ? { from: move.from, to: move.to, promotion: move.promotion }
+              : { from: move.from, to: move.to },
+          )
+        } catch {
+          applied = game.move({ from: move.from, to: move.to, promotion: move.promotion || 'q' })
+        }
       } else if (move?.san) {
         applied = game.move(move.san)
+      }
+      if (applied) {
+        lastValidFen = game.fen()
       }
     } catch {
       applied = null
     }
-    history.push(applied || move)
+    const fallbackFen =
+      raw?.fen ||
+      raw?.clientState?.fen ||
+      raw?.client_state?.fen ||
+      move?.fen
+    if (!applied && fallbackFen) {
+      try {
+        game = new Chess(fallbackFen)
+        lastValidFen = game.fen()
+      } catch {
+        lastValidFen = fallbackFen
+      }
+    }
+    if (applied || move) {
+      history.push(applied || move)
+    }
   }
 
-  return { history, fen: game.fen() }
+  return { history, fen: lastValidFen }
 }
 
 export function makeMove(game, from, to, promotion = 'q') {

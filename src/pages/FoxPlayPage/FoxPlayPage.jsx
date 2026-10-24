@@ -321,6 +321,7 @@ function FoxRoomView({ roomId, onLeave }) {
             ) : (
               <FoxChessBoard
                 game={game.engine}
+                fen={game.fen}
                 orientation={game.orientation}
                 onPieceDrop={game.sendMove}
                 canDragPiece={canDragPiece}

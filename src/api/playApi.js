@@ -100,9 +100,17 @@ export function getGameMoves(gameId) {
   return httpClient.get(`/games/${gameId}/moves`)
 }
 
-export function makeRoomMove(id, { from, to, promotion, state, clientState }) {
+export function makeRoomMove(
+  id,
+  { from, to, promotion, san, fen, gameOver, result, gameOverReason, state, clientState },
+) {
   const body = { from, to }
   if (promotion) body.promotion = promotion
+  if (san) body.san = san
+  if (fen) body.fen = fen
+  if (gameOver !== undefined) body.gameOver = gameOver
+  if (result) body.result = result
+  if (gameOverReason) body.gameOverReason = gameOverReason
   const payloadState = state !== undefined ? state : clientState
   if (payloadState !== undefined) {
     body.state = payloadState

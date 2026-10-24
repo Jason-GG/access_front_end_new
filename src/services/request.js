@@ -93,8 +93,24 @@ export function clearStoredChessStates() {
   }
 }
 
+function hasStoredSessionOrPracticeKey(key) {
+  if (!key) return false
+  if (key === STORAGE_KEYS.foxPracticeState || key === STORAGE_KEYS.chessPracticeState) {
+    return true
+  }
+  try {
+    return Boolean(
+      getStoredAccessToken() ||
+        getStoredRefreshToken() ||
+        localStorage.getItem(STORAGE_KEYS.session),
+    )
+  } catch {
+    return false
+  }
+}
+
 export function loadTokenScopedState(key) {
-  if (!key || !getStoredAccessToken()) return null
+  if (!hasStoredSessionOrPracticeKey(key)) return null
   try {
     const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : null
@@ -104,7 +120,7 @@ export function loadTokenScopedState(key) {
 }
 
 export function saveTokenScopedState(key, value) {
-  if (!key || !getStoredAccessToken()) return
+  if (!hasStoredSessionOrPracticeKey(key)) return
   try {
     if (value == null) {
       localStorage.removeItem(key)
