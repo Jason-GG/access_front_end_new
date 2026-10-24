@@ -1116,6 +1116,19 @@ export function useFoxPlayRoom({
   )
   const resign = useCallback(() => runAction(() => playApi.resignRoom(roomId)), [roomId, runAction])
   const abort = useCallback(() => runAction(() => playApi.abortRoom(roomId)), [roomId, runAction])
+  const markSessionDeleted = useCallback(() => {
+    if (!roomId) return
+    try {
+      const raw = sessionStorage.getItem('achess_deleted_rooms')
+      const list = raw ? JSON.parse(raw) : []
+      const set = new Set(Array.isArray(list) ? list : [])
+      set.add(String(roomId))
+      sessionStorage.setItem('achess_deleted_rooms', JSON.stringify(Array.from(set).slice(-200)))
+    } catch {
+      // ignore storage errors
+    }
+  }, [roomId])
+
   const leaveRoom = useCallback(async () => {
     if (!roomId) return false
     setError(null)
@@ -1129,27 +1142,55 @@ export function useFoxPlayRoom({
       }
       socketRef.current = null
     }
+    const playersInRoom = members.filter((m) => m.seat === 'white' || m.seat === 'black')
+    const otherPlayers = playersInRoom.filter((m) => {
+      const uid = getMemberUserId(m)
+      const uname = m.username || m.user?.username
+      if (uid && currentUserId) return !sameId(uid, currentUserId)
+      if (uname && currentUsername) return !sameId(uname, currentUsername)
+      return m.seat !== mySeat
+    })
+    const isRoomOwner = Boolean(
+      (ownerId && sameId(ownerId, currentUserId)) ||
+        (ownerUsername && currentUsername && sameId(ownerUsername, currentUsername)) ||
+        (!ownerId && !ownerUsername && mySeat === 'white' && !blackPlayer),
+    )
+    const isOwnerAndLastPlayer = isRoomOwner && otherPlayers.length === 0
     try {
-      await playApi.leaveRoom(roomId)
+      const res = await playApi.leaveRoom(roomId)
+      if (res?.deleted || res?.roomDeleted || isOwnerAndLastPlayer) {
+        if (!res?.deleted && !res?.roomDeleted && isOwnerAndLastPlayer) {
+          await playApi.deleteRoom(roomId).catch(() => {})
+        }
+        markSessionDeleted()
+        setRoomDeleted(true)
+        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+      }
       return true
     } catch {
+      if (isOwnerAndLastPlayer) {
+        await playApi.deleteRoom(roomId).catch(() => {})
+        markSessionDeleted()
+        setRoomDeleted(true)
+        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+      }
       return false
     }
-  }, [roomId])
+  }, [
+    roomId,
+    members,
+    currentUserId,
+    currentUsername,
+    mySeat,
+    ownerId,
+    ownerUsername,
+    blackPlayer,
+    markSessionDeleted,
+    roomStorageKey,
+  ])
   const deleteRoom = useCallback(async () => {
     if (!roomId) return false
     setError(null)
-    const markSessionDeleted = () => {
-      try {
-        const raw = sessionStorage.getItem('achess_deleted_rooms')
-        const list = raw ? JSON.parse(raw) : []
-        const set = new Set(Array.isArray(list) ? list : [])
-        set.add(String(roomId))
-        sessionStorage.setItem('achess_deleted_rooms', JSON.stringify(Array.from(set).slice(-200)))
-      } catch {
-        // ignore storage errors
-      }
-    }
     try {
       await playApi.deleteRoom(roomId)
       markSessionDeleted()
@@ -1168,7 +1209,7 @@ export function useFoxPlayRoom({
       setError(err?.message || 'Could not remove room.')
       return false
     }
-  }, [roomId, roomStorageKey])
+  }, [roomId, roomStorageKey, markSessionDeleted])
   const requestTakeback = useCallback(
     () => runAction(() => playApi.takebackRoom(roomId, 'request')),
     [roomId, runAction],
