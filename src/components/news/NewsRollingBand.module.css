@@ -1,0 +1,306 @@
+/* ------------------------------------------------------------------
+   Rolling News Band — Ticker & Cards Marquee
+   ------------------------------------------------------------------ */
+
+@keyframes rollTicker {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Top horizontal ticker bar */
+.tickerBand {
+  display: flex;
+  align-items: center;
+  background: #18181a;
+  color: var(--on-primary);
+  border-top: 1px solid var(--charcoal);
+  border-bottom: 1px solid var(--charcoal);
+  min-height: 48px;
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+
+.tickerBadgeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  min-height: 48px;
+  background: var(--ink);
+  border-right: 1px solid var(--charcoal);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-bright);
+  box-shadow: 0 0 0 3px rgba(30, 170, 82, 0.25);
+  flex-shrink: 0;
+}
+
+.tickerLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--on-primary);
+  white-space: nowrap;
+}
+
+.tickerSources {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--stone);
+  border-left: 1px solid var(--charcoal);
+  padding-left: 10px;
+}
+
+.tickerSourceLink {
+  color: var(--accent-teal-soft);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.tickerSourceLink:hover {
+  color: var(--accent-pink);
+  text-decoration: underline;
+}
+
+.tickerViewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.tickerTrack {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: rollTicker 75s linear infinite;
+  will-change: transform;
+}
+
+.tickerViewport:hover .tickerTrack,
+.tickerViewport:focus-within .tickerTrack {
+  animation-play-state: paused;
+}
+
+.tickerItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 28px;
+  color: var(--on-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  border-right: 1px solid var(--charcoal);
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.tickerItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--accent-pink-soft);
+}
+
+.tickerSourceTag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.tagChessBase {
+  background: var(--accent-teal);
+  color: var(--on-primary);
+}
+
+.tagChessCom {
+  background: var(--success);
+  color: var(--on-primary);
+}
+
+.tickerHeadline {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-primary);
+}
+
+.tickerItem:hover .tickerHeadline {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tickerQuote {
+  font-size: 13px;
+  color: var(--stone);
+  font-style: italic;
+}
+
+.tickerArrow {
+  font-size: 12px;
+  color: var(--accent-pink);
+}
+
+.tickerToggle {
+  background: var(--ink);
+  border: none;
+  border-left: 1px solid var(--charcoal);
+  color: var(--stone);
+  width: 44px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.tickerToggle:hover {
+  color: var(--on-primary);
+  background: var(--charcoal);
+}
+
+/* ------------------------------------------------------------------
+   Rolling Cards Band (HomePage News Section)
+   ------------------------------------------------------------------ */
+
+.cardsBandWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cardsToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sourcesBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sourcesLabel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mute);
+}
+
+.sourceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.sourceChip:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.sourceChipChessBase {
+  background: var(--accent-teal-soft);
+  color: var(--accent-teal);
+}
+
+.sourceChipChessCom {
+  background: rgba(0, 125, 72, 0.14);
+  color: var(--success);
+}
+
+.controlsBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controlBtn {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.controlBtn:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--on-primary);
+  border-color: var(--ink);
+}
+
+.controlBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cardsViewport {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 4px 0;
+}
+
+.cardsTrack {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: max-content;
+  animation: rollTicker 65s linear infinite;
+  will-change: transform;
+}
+
+.cardsViewport:hover .cardsTrack,
+.cardsViewport:focus-within .cardsTrack {
+  animation-play-state: paused;
+}
+
+.trackPaused {
+  animation-play-state: paused !important;
+}
+
+.cardSlide {
+  width: 360px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .tickerSources {
+    display: none;
+  }
+
+  .tickerBadgeGroup {
+    padding: 0 12px;
+  }
+
+  .cardSlide {
+    width: 290px;
+  }
+}

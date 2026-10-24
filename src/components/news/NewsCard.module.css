@@ -1,3 +1,14 @@
+.cardLink {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cardLink:hover {
+  color: inherit;
+}
+
 .card {
   background: var(--canvas);
   border: 1px solid var(--hairline);
@@ -7,11 +18,26 @@
   flex-direction: column;
   gap: 10px;
   height: 100%;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.cardLink:hover .card {
+  border-color: var(--ink);
+  background: var(--soft-cloud);
+  transform: translateY(-2px);
 }
 
 .cardFeatured {
   background: var(--ink);
   border-color: var(--ink);
+}
+
+.cardLink:hover .cardFeatured {
+  background: var(--charcoal);
+  border-color: var(--accent-pink);
 }
 
 .cardFeatured .title {
@@ -22,27 +48,72 @@
   color: var(--stone);
 }
 
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .category {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
   color: var(--accent-teal);
+  background: var(--accent-teal-soft);
+}
+
+.categoryChessCom {
+  color: var(--success);
+  background: rgba(0, 125, 72, 0.12);
+}
+
+.categoryChessBase {
+  color: var(--accent-teal);
+  background: var(--accent-teal-soft);
 }
 
 .cardFeatured .category {
-  color: var(--accent-pink-soft);
+  color: var(--ink);
+  background: var(--accent-pink-soft);
+}
+
+.externalBadge {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mute);
+  transition: color 140ms ease;
+}
+
+.cardLink:hover .externalBadge {
+  color: var(--accent-pink);
+}
+
+.cardFeatured .externalBadge {
+  color: var(--stone);
 }
 
 .title {
-  font-size: 24px;
+  font-size: 22px;
   text-transform: uppercase;
   letter-spacing: 0;
   margin: 0;
+  transition: color 140ms ease;
+}
+
+.cardLink:hover .title {
+  color: var(--accent-teal);
+}
+
+.cardLink:hover .cardFeatured .title {
+  color: var(--accent-pink-soft);
 }
 
 .summary {
-  font-size: 16px;
+  font-size: 15px;
   color: var(--charcoal);
   margin: 0;
   flex-grow: 1;

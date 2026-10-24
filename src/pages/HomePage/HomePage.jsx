@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/common/Button'
-import { NewsCard } from '../../components/news/NewsCard'
-import { newsItems } from '../../data/news'
+import { NewsRollingBand } from '../../components/news/NewsRollingBand'
+import { useFetchNews } from '../../hooks/useFetchNews'
 import { ROUTES } from '../../utils/constants'
 import { cx } from '../../utils/helpers'
 import styles from './HomePage.module.css'
@@ -35,9 +35,12 @@ const FEATURES = [
 
 export function HomePage() {
   const navigate = useNavigate()
+  const { news, loading, refetch } = useFetchNews()
 
   return (
     <>
+      <NewsRollingBand items={news} variant="ticker" />
+
       <section className={styles.hero}>
         <div className="container">
           <p className={styles.heroEyebrow}>EST. MMXXVI · THE ACCESS CHESS CLUB</p>
@@ -94,18 +97,19 @@ export function HomePage() {
         <div className="container">
           <div className={styles.sectionHeader}>
             <div>
-              <p className="eyebrow">From the desk</p>
+              <p className="eyebrow">Live wire · ChessBase &amp; Chess.com</p>
               <h2 className="section-heading">Latest news</h2>
             </div>
             <Link to={ROUTES.news} className={styles.underLink}>
               Read all news
             </Link>
           </div>
-          <div className={styles.newsGrid}>
-            {newsItems.slice(0, 3).map((item) => (
-              <NewsCard key={item.id} item={item} />
-            ))}
-          </div>
+          <NewsRollingBand
+            items={news}
+            variant="cards"
+            onRefresh={refetch}
+            loading={loading}
+          />
         </div>
       </section>
 
