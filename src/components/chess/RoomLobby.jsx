@@ -58,16 +58,27 @@ function hostMember(room) {
   return sorted[0] || null
 }
 
-function hostName(room) {
+function hostName(room, currentUser) {
   const owner = hostMember(room)
-  return owner?.user?.username || owner?.username || 'A player'
+  const name =
+    owner?.user?.username ||
+    owner?.username ||
+    room?.owner?.username ||
+    room?.ownerUsername
+  if (name) return name
+  const ownerId = room?.ownerId || room?.owner_id || getMemberId(owner)
+  if (ownerId && currentUser?.id && String(ownerId) === String(currentUser.id)) {
+    return currentUser.username || currentUser.handle || 'You'
+  }
+  return 'A player'
 }
 
 function canUserDeleteRoom(room, user) {
   if (!user) return false
+  const myUsername = user.username || user.handle || ''
   if (
     String(user.role || '').toLowerCase() === 'admin' ||
-    String(user.username || '').toLowerCase() === 'admin'
+    String(myUsername).toLowerCase() === 'admin'
   ) {
     return true
   }
@@ -77,8 +88,8 @@ function canUserDeleteRoom(room, user) {
   if (ownerId && user.id && String(ownerId) === String(user.id)) return true
   if (
     ownerUsername &&
-    user.username &&
-    String(ownerUsername).toLowerCase() === String(user.username).toLowerCase()
+    myUsername &&
+    String(ownerUsername).toLowerCase() === String(myUsername).toLowerCase()
   ) {
     return true
   }
@@ -87,12 +98,13 @@ function canUserDeleteRoom(room, user) {
 
 function isUserInRoom(room, user) {
   if (!user || !Array.isArray(room?.members)) return false
+  const myUsername = user.username || user.handle || ''
   return room.members.some((m) => {
     const uid = m?.user?.id || m?.userId || m?.id
     const uname = m?.user?.username || m?.username
     return (
       (uid && user.id && String(uid) === String(user.id)) ||
-      (uname && user.username && String(uname).toLowerCase() === String(user.username).toLowerCase())
+      (uname && myUsername && String(uname).toLowerCase() === String(myUsername).toLowerCase())
     )
   })
 }
@@ -294,7 +306,7 @@ export function RoomLobby({
               <li key={room.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <div className={styles.hostLine}>
-                    <span className={styles.host}>{hostName(room)}</span>
+                    <span className={styles.host}>{hostName(room, user)}</span>
                     <span className={styles.variantBadge}>
                       {isFox ? '10×10 Fox' : '8×8 Chess'}
                     </span>

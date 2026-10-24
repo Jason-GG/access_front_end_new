@@ -29,6 +29,8 @@ export function CommunityPage() {
   const [draft, setDraft] = useState('')
   const [posted, setPosted] = useState(false)
 
+  const currentAuthor = user?.username || user?.handle || 'guest'
+
   function handlePost(event) {
     event.preventDefault()
     const content = draft.trim()
@@ -36,7 +38,7 @@ export function CommunityPage() {
 
     const newPost = {
       id: Date.now(),
-      author: user?.handle ?? 'guest',
+      author: currentAuthor,
       time: new Date().toISOString(),
       content,
       replies: 0,
@@ -63,7 +65,7 @@ export function CommunityPage() {
         <div className="container">
           <form className={styles.composer} onSubmit={handlePost}>
             <label className={styles.composerLabel} htmlFor="post-draft">
-              Pin something to the board
+              Pin something to the board {user ? `(posting as @${currentAuthor})` : ''}
             </label>
             <textarea
               id="post-draft"

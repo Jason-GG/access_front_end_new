@@ -39,7 +39,7 @@ function RoomView({ roomId, onLeave }) {
     roomId,
     currentUserId: user?.id,
     currentUserRole: user?.role,
-    currentUsername: user?.username,
+    currentUsername: user?.username || user?.handle,
   })
   const [confirmResign, setConfirmResign] = useState(false)
   const [copied, setCopied] = useState(false)

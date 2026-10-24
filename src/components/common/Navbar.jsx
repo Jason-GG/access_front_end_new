@@ -21,6 +21,16 @@ export function Navbar() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
+  const displayName =
+    user?.username ||
+    user?.handle ||
+    (user?.email ? String(user.email).split('@')[0] : null) ||
+    'Player'
+  const userInitial = String(displayName).trim().charAt(0).toUpperCase() || 'P'
+  const isAdmin =
+    String(user?.role || '').toLowerCase() === 'admin' ||
+    String(displayName).toLowerCase() === 'admin'
+
   function handleSearch(event) {
     event.preventDefault()
     navigate(ROUTES.news)
@@ -40,9 +50,18 @@ export function Navbar() {
               Help
             </NavLink>
             {user ? (
-              <button type="button" className={styles.utilityLink} onClick={logout}>
-                Sign out
-              </button>
+              <>
+                <span
+                  className={styles.utilityUser}
+                  title={user.email ? `${displayName} (${user.email})` : `Signed in as ${displayName}`}
+                >
+                  Signed in as <strong className={styles.utilityUserName}>{displayName}</strong>
+                  {isAdmin && <span className={styles.utilityRoleBadge}>Admin</span>}
+                </span>
+                <button type="button" className={styles.utilityLink} onClick={logout}>
+                  Sign out
+                </button>
+              </>
             ) : (
               <>
                 <NavLink to={ROUTES.signup} className={styles.utilityLink}>
@@ -92,9 +111,17 @@ export function Navbar() {
             </form>
 
             {user && (
-              <span className={cx(styles.handle, 'notation')} title={user.email}>
-                {user.handle}
-              </span>
+              <div
+                className={styles.userBadge}
+                title={user.email ? `Signed in as ${displayName} (${user.email})` : `Signed in as ${displayName}`}
+                aria-label={`Signed in as ${displayName}`}
+              >
+                <span className={styles.userAvatar} aria-hidden="true">
+                  {userInitial}
+                </span>
+                <span className={cx(styles.handle, 'notation')}>{displayName}</span>
+                {isAdmin && <span className={styles.roleTag}>Admin</span>}
+              </div>
             )}
 
             {user ? (

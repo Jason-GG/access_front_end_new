@@ -29,7 +29,9 @@ export function RoomChat({ comments = [], onSend, error, disabled = false }) {
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className={styles.message}>
-              <span className={styles.author}>{comment.user?.username || 'Player'}</span>
+              <span className={styles.author}>
+                {comment.user?.username || comment.username || 'Player'}
+              </span>
               <span className={styles.body}>{comment.body}</span>
             </div>
           ))

@@ -8,19 +8,67 @@ import {
   storeTokens,
 } from './request'
 
+function decodeUserFromJwt(token) {
+  if (!token || typeof token !== 'string') return null
+  try {
+    const parts = token.split('.')
+    if (parts.length < 2) return null
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const json = atob(padded)
+    const payload = JSON.parse(json)
+    if (!payload || typeof payload !== 'object') return null
+    const id = payload.id || payload.sub || payload.userId || null
+    const username = payload.username || payload.preferred_username || payload.name || ''
+    const email = payload.email || ''
+    const role = payload.role || undefined
+    if (!id && !username && !email) return null
+    return {
+      ...(id ? { id } : {}),
+      ...(username ? { username } : {}),
+      ...(email ? { email } : {}),
+      ...(role ? { role } : {}),
+    }
+  } catch {
+    return null
+  }
+}
+
 function normalizeUser(rawUser, extra = {}) {
-  if (!rawUser) return null
-  const username = rawUser.username || ''
-  const email = rawUser.email || extra.email || ''
+  const unwrapped =
+    rawUser && typeof rawUser === 'object' && rawUser.user && typeof rawUser.user === 'object'
+      ? rawUser.user
+      : rawUser
+  const jwtUser = decodeUserFromJwt(getStoredAccessToken()) || {}
+  const mergedSource = {
+    ...jwtUser,
+    ...(extra || {}),
+    ...(unwrapped || {}),
+  }
+
+  const email = mergedSource.email || extra?.email || jwtUser.email || ''
+  const username =
+    mergedSource.username ||
+    extra?.username ||
+    jwtUser.username ||
+    mergedSource.handle ||
+    extra?.handle ||
+    (email ? handleFromEmail(email) : '') ||
+    ''
+  const id = mergedSource.id || mergedSource.userId || extra?.id || jwtUser.id || undefined
+
+  if (!id && !username && !email) return null
+
   return {
-    ...rawUser,
+    ...mergedSource,
+    ...(id ? { id } : {}),
     email,
     username,
     handle: username || (email ? handleFromEmail(email) : 'Player'),
   }
 }
 
-function readSession() {
+function readRawSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.session)
     return raw ? JSON.parse(raw) : null
@@ -29,10 +77,20 @@ function readSession() {
   }
 }
 
+function readSession() {
+  const stored = readRawSession()
+  const token = getStoredAccessToken()
+  if (!stored && !token) return null
+  return normalizeUser(stored)
+}
+
 function writeSession(user) {
   try {
     if (user) {
-      localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(user))
+      const normalized = normalizeUser(user, readRawSession() || {})
+      if (normalized) {
+        localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(normalized))
+      }
     } else {
       localStorage.removeItem(STORAGE_KEYS.session)
     }
@@ -50,34 +108,44 @@ export function getCurrentUser() {
  */
 export async function fetchCurrentUser() {
   const token = getStoredAccessToken()
-  if (!token) {
+  const refreshToken = getStoredRefreshToken()
+  if (!token && !refreshToken) {
     writeSession(null)
     return null
   }
 
+  const existingSession = readRawSession() || {}
+
   try {
     // Try /users/me first to get email and stats
     const response = await authApi.getUserProfileApi()
-    const user = normalizeUser(response.user)
-    writeSession(user)
-    return user
-  } catch {
-    try {
-      // Fallback to /auth/me
-      const meResponse = await authApi.getAuthMeApi()
-      const user = normalizeUser(meResponse.user, readSession() || {})
+    const user = normalizeUser(response?.user || response, existingSession)
+    if (user) {
       writeSession(user)
       return user
-    } catch (err) {
-      if (err?.status === 401 || err?.status === 403) {
-        // Token is invalid/expired and couldn't be refreshed
-        clearStoredTokens()
-        writeSession(null)
-        return null
-      }
-      // On transient network errors, preserve existing session if token is still present
-      return getStoredAccessToken() ? readSession() : null
     }
+  } catch {
+    // Fall through to /auth/me
+  }
+
+  try {
+    // Fallback to /auth/me
+    const meResponse = await authApi.getAuthMeApi()
+    const user = normalizeUser(meResponse?.user || meResponse, readRawSession() || existingSession)
+    if (user) {
+      writeSession(user)
+      return user
+    }
+    return readSession()
+  } catch (err) {
+    if (err?.status === 401 || err?.status === 403) {
+      // Token is invalid/expired and couldn't be refreshed
+      clearStoredTokens()
+      writeSession(null)
+      return null
+    }
+    // On transient network errors, preserve existing session if token is still present
+    return getStoredAccessToken() ? readSession() : null
   }
 }
 
@@ -100,12 +168,12 @@ export async function login({ username, password }) {
   const session = await authApi.loginApi({ username, password })
   storeTokens(session.accessToken, session.refreshToken)
 
-  let fullUser = normalizeUser(session.user)
+  let fullUser = normalizeUser(session.user, { username })
   try {
     // Enrich with email & stats from profile if available
     const profile = await authApi.getUserProfileApi()
-    if (profile?.user) {
-      fullUser = normalizeUser(profile.user)
+    if (profile?.user || profile?.username) {
+      fullUser = normalizeUser(profile.user || profile, fullUser || { username })
     }
   } catch {
     // ignore profile enrichment failure, session user is sufficient

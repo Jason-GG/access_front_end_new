@@ -44,7 +44,7 @@ function FoxRoomView({ roomId, onLeave }) {
     roomId,
     currentUserId: user?.id,
     currentUserRole: user?.role,
-    currentUsername: user?.username,
+    currentUsername: user?.username || user?.handle,
   })
   const [confirmResign, setConfirmResign] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -396,6 +396,8 @@ function FoxRoomView({ roomId, onLeave }) {
 // Offline / Practice View (Play vs House Bot or Local Pass & Play)
 // ---------------------------------------------------------------------------
 function FoxPracticeView({ playMode, setPlayMode }) {
+  const { user } = useAuth()
+  const playerDisplayName = user?.username || user?.handle || 'You'
   const [orientation, setOrientation] = useState(
     () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.orientation || 'white',
   )
@@ -512,19 +514,24 @@ function FoxPracticeView({ playMode, setPlayMode }) {
                 <PlayerRow
                   label="Opponent"
                   name="House Bot"
-                  you={orientation === 'black'}
+                  you={false}
                   active={turn === (orientation === 'white' ? 'b' : 'w')}
                 />
                 <PlayerRow
                   label="Player"
-                  name="You"
-                  you={orientation === 'white'}
+                  name={playerDisplayName}
+                  you
                   active={turn === orientation[0]}
                 />
               </>
             ) : (
               <>
-                <PlayerRow label="White" name="Player 1" active={turn === 'w'} />
+                <PlayerRow
+                  label="White"
+                  name={user ? playerDisplayName : 'Player 1'}
+                  you={Boolean(user)}
+                  active={turn === 'w'}
+                />
                 <PlayerRow label="Black" name="Player 2" active={turn === 'b'} />
               </>
             )}

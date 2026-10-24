@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as authService from '../services/authService'
+import { AUTH_SESSION_EVENT } from '../services/request'
 import { AuthContext } from './authContext'
 
 export function AuthProvider({ children }) {
@@ -25,8 +26,18 @@ export function AuthProvider({ children }) {
       }
     }
     initSession()
+
+    function syncSessionFromStorage() {
+      if (!active) return
+      setUser(authService.getCurrentUser())
+    }
+
+    window.addEventListener(AUTH_SESSION_EVENT, syncSessionFromStorage)
+    window.addEventListener('storage', syncSessionFromStorage)
     return () => {
       active = false
+      window.removeEventListener(AUTH_SESSION_EVENT, syncSessionFromStorage)
+      window.removeEventListener('storage', syncSessionFromStorage)
     }
   }, [])
 

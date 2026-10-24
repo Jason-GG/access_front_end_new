@@ -690,23 +690,39 @@ export function usePlayRoom({
 
   const whitePlayer = useMemo(() => {
     const m = members.find((member) => member.seat === 'white')
-    if (!m) return null
+    if (!m) {
+      if (mySeat === 'white' && currentUsername) {
+        return { id: currentUserId, username: currentUsername, seat: 'white' }
+      }
+      return null
+    }
+    const id = getMemberUserId(m)
+    const fallbackName =
+      sameId(id, currentUserId) || mySeat === 'white' ? currentUsername : null
     return {
-      id: getMemberUserId(m),
-      username: m.username || m.user?.username || 'White',
+      id,
+      username: m.username || m.user?.username || fallbackName || 'White',
       seat: 'white',
     }
-  }, [members])
+  }, [members, mySeat, currentUserId, currentUsername])
 
   const blackPlayer = useMemo(() => {
     const m = members.find((member) => member.seat === 'black')
-    if (!m) return null
+    if (!m) {
+      if (mySeat === 'black' && currentUsername) {
+        return { id: currentUserId, username: currentUsername, seat: 'black' }
+      }
+      return null
+    }
+    const id = getMemberUserId(m)
+    const fallbackName =
+      sameId(id, currentUserId) || mySeat === 'black' ? currentUsername : null
     return {
-      id: getMemberUserId(m),
-      username: m.username || m.user?.username || 'Black',
+      id,
+      username: m.username || m.user?.username || fallbackName || 'Black',
       seat: 'black',
     }
-  }, [members])
+  }, [members, mySeat, currentUserId, currentUsername])
 
   const isPlayer = mySeat === 'white' || mySeat === 'black'
   const ownerMember = useMemo(() => {

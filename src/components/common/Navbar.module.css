@@ -52,6 +52,30 @@
   text-underline-offset: 3px;
 }
 
+.utilityUser {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--mute);
+  font-size: 12px;
+}
+
+.utilityUserName {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.utilityRoleBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-teal);
+  background: rgba(0, 121, 107, 0.12);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
 /* Primary nav — white, ink text, 2px ink underline on active. */
 .nav {
   background: var(--canvas);
@@ -162,12 +186,50 @@
   color: var(--mute);
 }
 
-.handle {
-  font-size: 14px;
-  color: var(--mute);
+.userBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--soft-cloud);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-pill);
-  padding: 4px 14px;
+  padding: 4px 12px 4px 6px;
+  height: 36px;
+}
+
+.userAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-pink);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.handle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roleTag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-teal);
+  background: rgba(0, 121, 107, 0.12);
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
 }
 
 .joinPill {

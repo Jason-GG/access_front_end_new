@@ -1,5 +1,17 @@
 import { STORAGE_KEYS } from '../utils/constants'
 
+export const AUTH_SESSION_EVENT = 'achess:session-updated'
+
+function notifySessionUpdated() {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    try {
+      window.dispatchEvent(new CustomEvent(AUTH_SESSION_EVENT))
+    } catch {
+      // ignore event dispatch errors
+    }
+  }
+}
+
 const DEV_HOST = 'https://achess-dev.wguan.dpdns.org'
 const PROD_HOST = 'http://139.159.186.80:3000'
 
@@ -138,6 +150,7 @@ export function clearStoredTokens() {
     localStorage.removeItem(STORAGE_KEYS.refreshToken)
     localStorage.removeItem(STORAGE_KEYS.session)
     clearStoredChessStates()
+    notifySessionUpdated()
   } catch {
     // ignore
   }
@@ -194,8 +207,16 @@ export async function request(endpoint, options = {}) {
     )
   }
 
-  // Handle 401 Token Refresh
-  if (response.status === 401 && retryOnAuthFailure && !cleanEndpoint.startsWith('/auth/')) {
+  // Handle 401 Token Refresh (include /auth/me, exclude unauthenticated auth endpoints)
+  const canRefreshEndpoint =
+    !skipAuth &&
+    cleanEndpoint !== '/auth/refresh' &&
+    cleanEndpoint !== '/auth/login' &&
+    cleanEndpoint !== '/auth/register' &&
+    cleanEndpoint !== '/auth/verify-email' &&
+    cleanEndpoint !== '/auth/resend-verification'
+
+  if (response.status === 401 && retryOnAuthFailure && canRefreshEndpoint) {
     const refreshToken = getStoredRefreshToken()
     if (refreshToken) {
       if (!isRefreshing) {
@@ -211,8 +232,27 @@ export async function request(endpoint, options = {}) {
             const session = await refreshRes.json()
             storeTokens(session.accessToken, session.refreshToken)
             if (session.user) {
-              localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session.user))
+              let existingUser = null
+              try {
+                const rawExisting = localStorage.getItem(STORAGE_KEYS.session)
+                existingUser = rawExisting ? JSON.parse(rawExisting) : null
+              } catch {
+                existingUser = null
+              }
+              const mergedUser = {
+                ...(existingUser || {}),
+                ...session.user,
+              }
+              const resolvedUsername =
+                mergedUser.username ||
+                mergedUser.handle ||
+                (mergedUser.email ? String(mergedUser.email).split('@')[0] : '') ||
+                ''
+              mergedUser.username = resolvedUsername
+              mergedUser.handle = resolvedUsername || 'Player'
+              localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(mergedUser))
             }
+            notifySessionUpdated()
             onRefreshed(session.accessToken)
             isRefreshing = false
           } else {
