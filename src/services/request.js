@@ -213,6 +213,8 @@ export async function request(endpoint, options = {}) {
     cleanEndpoint !== '/auth/refresh' &&
     cleanEndpoint !== '/auth/login' &&
     cleanEndpoint !== '/auth/register' &&
+    cleanEndpoint !== '/auth/send-verification-code' &&
+    cleanEndpoint !== '/auth/send-code' &&
     cleanEndpoint !== '/auth/verify-email' &&
     cleanEndpoint !== '/auth/resend-verification'
 

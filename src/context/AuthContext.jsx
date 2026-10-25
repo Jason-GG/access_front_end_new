@@ -48,9 +48,16 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signup = useCallback(async (data) => {
-    // data can be { username, email, password }
+    // data is { username, email, password, code }
     const result = await authService.signup(data)
+    if (result.authenticated && result.user) {
+      setUser(result.user)
+    }
     return result
+  }, [])
+
+  const sendVerificationCode = useCallback(async (email) => {
+    return authService.sendVerificationCode(email)
   }, [])
 
   const verifyEmail = useCallback(async (token) => {
@@ -72,11 +79,12 @@ export function AuthProvider({ children }) {
       loading,
       login,
       signup,
+      sendVerificationCode,
       verifyEmail,
       resendVerification,
       logout,
     }),
-    [user, loading, login, signup, verifyEmail, resendVerification, logout],
+    [user, loading, login, signup, sendVerificationCode, verifyEmail, resendVerification, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,50 +1,87 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
 import { useAuth } from '../../hooks/useAuth'
 import { ROUTES } from '../../utils/constants'
-import { cx } from '../../utils/helpers'
 import {
   validateConfirmPassword,
   validateEmail,
   validatePassword,
   validateUsername,
+  validateVerificationCode,
 } from '../../utils/validators'
 import styles from './SignupPage.module.css'
 
 export function SignupPage() {
-  const { signup, verifyEmail, login, resendVerification } = useAuth()
+  const { signup, sendVerificationCode, login } = useAuth()
   const navigate = useNavigate()
 
-  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
+  const [codeSentMessage, setCodeSentMessage] = useState(null)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
-  // Step 2 state: Email verification before account activation
-  const [registeredData, setRegisteredData] = useState(null)
-  const [token, setToken] = useState('')
-  const [verifying, setVerifying] = useState(false)
-  const [verifySuccess, setVerifySuccess] = useState(null)
-  const [verifyError, setVerifyError] = useState(null)
-  const [resending, setResending] = useState(false)
-  const [resendMessage, setResendMessage] = useState(null)
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 1 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
 
-  async function handleRegisterStep(event) {
+  async function handleSendVerifyCode() {
+    const emailError = validateEmail(email)
+    if (emailError) {
+      setErrors((prev) => ({ ...prev, email: emailError }))
+      return
+    }
+
+    setErrors((prev) => ({ ...prev, email: null }))
+    setFormError(null)
+    setCodeSentMessage(null)
+    setSendingCode(true)
+    try {
+      const res = await sendVerificationCode(email.trim())
+      setCodeSentMessage(res?.message || `Verification code sent to ${email.trim()}.`)
+      setCooldown(60)
+    } catch (err) {
+      setErrors((prev) => ({
+        ...prev,
+        email: err.message || 'Failed to send verification code.',
+      }))
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
+  async function handleSignup(event) {
     event.preventDefault()
 
     const nextErrors = {
-      username: validateUsername(username),
       email: validateEmail(email),
+      code: validateVerificationCode(code),
+      username: validateUsername(username),
       password: validatePassword(password),
       confirm: validateConfirmPassword(password, confirm),
     }
     setErrors(nextErrors)
-    if (nextErrors.username || nextErrors.email || nextErrors.password || nextErrors.confirm) return
+    if (
+      nextErrors.email ||
+      nextErrors.code ||
+      nextErrors.username ||
+      nextErrors.password ||
+      nextErrors.confirm
+    ) {
+      return
+    }
 
     setSubmitting(true)
     setFormError(null)
@@ -53,12 +90,20 @@ export function SignupPage() {
         username: username.trim(),
         email: email.trim(),
         password,
+        code: code.trim(),
       })
-      setRegisteredData({
-        username: username.trim(),
-        email: email.trim(),
-        message: result.message,
-      })
+
+      if (result.authenticated) {
+        navigate(ROUTES.play, { replace: true })
+        return
+      }
+
+      try {
+        await login(username.trim(), password)
+        navigate(ROUTES.play, { replace: true })
+      } catch {
+        navigate(ROUTES.login, { replace: true })
+      }
     } catch (err) {
       setFormError(err.message || 'Registration failed.')
     } finally {
@@ -66,161 +111,68 @@ export function SignupPage() {
     }
   }
 
-  async function handleVerifyStep(event) {
-    event.preventDefault()
-    if (!token.trim()) {
-      setVerifyError('Please enter your email verification token.')
-      return
-    }
-
-    setVerifying(true)
-    setVerifyError(null)
-    setVerifySuccess(null)
-    try {
-      // 1. Verify email address on backend
-      await verifyEmail(token.trim())
-      setVerifySuccess('Email verified successfully! Logging you into the platform…')
-
-      // 2. Automatically log the newly verified user into the platform
-      try {
-        await login(registeredData.username, password)
-        navigate(ROUTES.play, { replace: true })
-      } catch {
-        // If auto-login fails, redirect to manual login
-        navigate(ROUTES.login, { replace: true })
-      }
-    } catch (err) {
-      setVerifyError(
-        err.message || 'Verification failed. Please ensure the token is correct and unexpired.',
-      )
-    } finally {
-      setVerifying(false)
-    }
-  }
-
-  async function handleResend() {
-    if (!registeredData?.email) return
-    setResending(true)
-    setResendMessage(null)
-    try {
-      const res = await resendVerification(registeredData.email)
-      setResendMessage(res.message || 'New verification email sent!')
-    } catch (err) {
-      setVerifyError(err.message || 'Could not resend verification email.')
-    } finally {
-      setResending(false)
-    }
-  }
-
-  // Step 2: Email Verification (Mandatory before platform access)
-  if (registeredData) {
-    return (
-      <section className={styles.card}>
-        <div className={styles.stepsBar}>
-          <div className={cx(styles.stepBadge, styles.stepBadgeCompleted)}>
-            ✓ 1. Account Details
-          </div>
-          <div className={cx(styles.stepBadge, styles.stepBadgeActive)}>
-            2. Verify Email (Required)
-          </div>
-        </div>
-
-        <p className="eyebrow">Step 2 of 2: Email Verification</p>
-        <h1 className={styles.title}>Verify Email Address</h1>
-
-        {verifySuccess ? (
-          <div>
-            <p className={styles.formSuccess}>{verifySuccess}</p>
-            <Button
-              type="button"
-              size="lg"
-              className={styles.submit}
-              onClick={() => navigate(ROUTES.login, { replace: true })}
-            >
-              Enter Platform
-            </Button>
-          </div>
-        ) : (
-          <div>
-            <div className={styles.infoBox}>
-              <p>
-                Verification code sent to <strong>{registeredData.email}</strong>.
-              </p>
-              <p>
-                To complete registration for <strong>{registeredData.username}</strong>, you must
-                verify your email address before logging in.
-              </p>
-            </div>
-
-            <form onSubmit={handleVerifyStep} className={styles.verifySection} noValidate>
-              <Input
-                id="signup-token"
-                label="Verification Token"
-                type="text"
-                autoComplete="off"
-                placeholder="Enter 32+ character verification token"
-                value={token}
-                error={verifyError}
-                onChange={(e) => setToken(e.target.value)}
-              />
-
-              <Button
-                type="submit"
-                size="lg"
-                className={styles.submit}
-                disabled={verifying || !token.trim()}
-              >
-                {verifying ? 'Verifying & logging in…' : 'Verify Email & Complete Registration'}
-              </Button>
-            </form>
-
-            <div className={styles.resendRow}>
-              <span>Didn&apos;t receive the code?</span>
-              <button
-                type="button"
-                className={styles.resendBtn}
-                onClick={handleResend}
-                disabled={resending}
-              >
-                {resending ? 'Sending…' : 'Resend Email'}
-              </button>
-            </div>
-            {resendMessage && <p className={styles.formSuccess}>{resendMessage}</p>}
-
-            <p className={styles.switch}>
-              Already verified in another tab? <Link to={ROUTES.login}>Log in here</Link>
-            </p>
-          </div>
-        )}
-      </section>
-    )
-  }
-
-  // Step 1: Initial Registration Form
   return (
     <section className={styles.card}>
-      <div className={styles.stepsBar}>
-        <div className={cx(styles.stepBadge, styles.stepBadgeActive)}>1. Account Details</div>
-        <div className={styles.stepBadge}>2. Verify Email (Required)</div>
-      </div>
-
       <p className="eyebrow">Member Registration</p>
-      <h1 className={styles.title}>Create Account</h1>
+      <h1 className={styles.title}>Sign Up</h1>
       <p className={styles.desc}>
-        Registration requires a valid email address. You will verify your email in Step 2 before
-        accessing the platform.
+        Enter your email address and click <strong>Verify Code</strong> to receive a verification
+        code, then fill it in below to complete your sign up.
       </p>
 
-      <form onSubmit={handleRegisterStep} noValidate>
+      <form onSubmit={handleSignup} noValidate>
+        <div className={styles.emailVerifyRow}>
+          <Input
+            id="signup-email"
+            className={styles.emailInput}
+            label="Email Address"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            error={errors.email}
+            onChange={(event) => {
+              setEmail(event.target.value)
+              if (errors.email) setErrors((prev) => ({ ...prev, email: null }))
+            }}
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            className={styles.verifyCodeBtn}
+            onClick={handleSendVerifyCode}
+            disabled={sendingCode || cooldown > 0 || !email.trim()}
+          >
+            {sendingCode
+              ? 'Sending…'
+              : cooldown > 0
+                ? `Verify Code (${cooldown}s)`
+                : 'Verify Code'}
+          </Button>
+        </div>
+
+        {codeSentMessage && (
+          <p className={styles.formSuccess} role="status">
+            {codeSentMessage}
+          </p>
+        )}
+
         <Input
-          id="signup-email"
-          label="Email Address"
-          type="email"
-          autoComplete="email"
-          value={email}
-          error={errors.email}
-          onChange={(event) => setEmail(event.target.value)}
+          id="signup-code"
+          label="Verification Code"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="Enter verification code from email"
+          value={code}
+          error={errors.code}
+          onChange={(event) => {
+            setCode(event.target.value)
+            if (errors.code) setErrors((prev) => ({ ...prev, code: null }))
+          }}
         />
+
         <Input
           id="signup-username"
           label="Username"
@@ -229,8 +181,12 @@ export function SignupPage() {
           value={username}
           error={errors.username}
           hint="3–50 characters (letters, numbers, underscores)"
-          onChange={(event) => setUsername(event.target.value)}
+          onChange={(event) => {
+            setUsername(event.target.value)
+            if (errors.username) setErrors((prev) => ({ ...prev, username: null }))
+          }}
         />
+
         <Input
           id="signup-password"
           label="Password"
@@ -239,8 +195,12 @@ export function SignupPage() {
           value={password}
           error={errors.password}
           hint="At least 8 characters."
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={(event) => {
+            setPassword(event.target.value)
+            if (errors.password) setErrors((prev) => ({ ...prev, password: null }))
+          }}
         />
+
         <Input
           id="signup-confirm"
           label="Confirm Password"
@@ -248,7 +208,10 @@ export function SignupPage() {
           autoComplete="new-password"
           value={confirm}
           error={errors.confirm}
-          onChange={(event) => setConfirm(event.target.value)}
+          onChange={(event) => {
+            setConfirm(event.target.value)
+            if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: null }))
+          }}
         />
 
         {formError && (
@@ -258,15 +221,12 @@ export function SignupPage() {
         )}
 
         <Button type="submit" size="lg" className={styles.submit} disabled={submitting}>
-          {submitting ? 'Registering account…' : 'Continue to Email Verification →'}
+          {submitting ? 'Signing up…' : 'Sign Up'}
         </Button>
       </form>
 
       <p className={styles.switch}>
         Already a member? <Link to={ROUTES.login}>Log in</Link>
-      </p>
-      <p className={styles.note}>
-        Already have a verification code? <Link to={ROUTES.verifyEmail}>Verify email</Link>
       </p>
     </section>
   )

@@ -5,15 +5,27 @@ import { httpClient } from '../services/request'
  */
 
 /**
- * Register a new guest user
- * @param {{ username: string, email: string, password: string }} data
- * @returns {Promise<{ message: string, user: { id: string, username: string, role: string } }>}
+ * Send a verification code to the user's email address before registration
+ * @param {{ email: string }} data
+ * @returns {Promise<{ message: string }>}
  */
-export async function registerApi({ username, email, password }) {
+export async function sendVerificationCodeApi({ email }) {
+  return httpClient.post('/auth/send-verification-code', {
+    email: email.trim().toLowerCase(),
+  }, { skipAuth: true })
+}
+
+/**
+ * Register a new guest user with email verification code
+ * @param {{ username: string, email: string, password: string, code: string }} data
+ * @returns {Promise<{ message: string, user: { id: string, username: string, role: string }, accessToken?: string, refreshToken?: string }>}
+ */
+export async function registerApi({ username, email, password, code }) {
   return httpClient.post('/auth/register', {
     username: username.trim(),
     email: email.trim().toLowerCase(),
     password,
+    code: code?.trim(),
   }, { skipAuth: true })
 }
 

@@ -5,38 +5,6 @@
   padding: 36px 32px;
 }
 
-.stepsBar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.stepBadge {
-  flex: 1;
-  text-align: center;
-  padding: 8px 12px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  border: 1px solid var(--hairline);
-  background: var(--paper);
-  color: var(--mute);
-  transition: all 0.2s ease;
-}
-
-.stepBadgeActive {
-  background: var(--ink);
-  color: var(--canvas);
-  border-color: var(--ink);
-}
-
-.stepBadgeCompleted {
-  background: rgba(27, 115, 64, 0.1);
-  color: #1b7340;
-  border-color: #1b7340;
-}
-
 .title {
   font-size: 32px;
   text-transform: uppercase;
@@ -52,6 +20,23 @@
 
 .desc strong {
   color: var(--ink);
+}
+
+.emailVerifyRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.emailInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.verifyCodeBtn {
+  margin-top: 22px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .submit {
@@ -71,57 +56,11 @@
 .formSuccess {
   color: #1b7340;
   font-size: 14px;
-  margin: 0 0 18px;
-  padding: 12px 14px;
+  margin: -10px 0 18px;
+  padding: 10px 12px;
   background: rgba(27, 115, 64, 0.08);
   border-left: 3px solid #1b7340;
   line-height: 1.5;
-}
-
-.infoBox {
-  background: var(--paper);
-  border: 1px solid var(--hairline);
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.infoBox p {
-  margin: 0 0 8px;
-  font-size: 14px;
-  color: var(--ink);
-}
-
-.infoBox p:last-child {
-  margin-bottom: 0;
-}
-
-.verifySection {
-  margin-top: 20px;
-}
-
-.resendRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--mute);
-}
-
-.resendBtn {
-  background: none;
-  border: none;
-  color: var(--accent-pink);
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.resendBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .switch {
@@ -136,11 +75,4 @@
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.note {
-  margin: 0;
-  text-align: center;
-  font-size: 12px;
-  color: var(--mute);
 }

@@ -29,3 +29,10 @@ export function validateConfirmPassword(password, confirm) {
   if (password !== confirm) return 'Passwords do not match.'
   return null
 }
+
+export function validateVerificationCode(code) {
+  const trimmed = code?.trim() || ''
+  if (!trimmed) return 'Verification code is required.'
+  if (trimmed.length < 4) return 'Please enter a valid verification code.'
+  return null
+}

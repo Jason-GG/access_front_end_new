@@ -150,14 +150,30 @@ export async function fetchCurrentUser() {
 }
 
 /**
- * Register a guest user. Queues verification email on the backend.
- * Note: Does not log in or issue a token until email is verified.
+ * Send verification code to email for registration.
  */
-export async function signup({ username, email, password }) {
-  const response = await authApi.registerApi({ username, email, password })
+export async function sendVerificationCode(email) {
+  return authApi.sendVerificationCodeApi({ email })
+}
+
+/**
+ * Register a guest user with an email verification code.
+ * Stores session tokens if returned by the backend.
+ */
+export async function signup({ username, email, password, code }) {
+  const response = await authApi.registerApi({ username, email, password, code })
+  let fullUser = normalizeUser(response.user, { username, email })
+
+  if (response.accessToken && response.refreshToken) {
+    storeTokens(response.accessToken, response.refreshToken)
+    fullUser = normalizeUser(response.user, { username, email })
+    writeSession(fullUser)
+  }
+
   return {
-    message: response.message || 'Registration successful. Please verify your email.',
-    user: normalizeUser(response.user, { email }),
+    message: response.message || 'Registration successful.',
+    user: fullUser,
+    authenticated: Boolean(response.accessToken),
   }
 }
 
