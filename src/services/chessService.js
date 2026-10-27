@@ -174,11 +174,218 @@ export function getMovePairings(history) {
   return pairs
 }
 
-// A humble clubhouse opponent: prefers a capture when one exists,
-// otherwise plays a random legal move.
-export function pickBotMove(game) {
+// Computer AI opponent supporting Easy, Medium, and Hard difficulty levels
+// using material values, piece-square positional tables, and minimax with alpha-beta pruning.
+const AI_PIECE_VALUES = {
+  p: 100,
+  n: 320,
+  b: 330,
+  r: 500,
+  q: 900,
+  k: 20000,
+}
+
+const PST_PAWN = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [50, 50, 50, 50, 50, 50, 50, 50],
+  [10, 10, 20, 30, 30, 20, 10, 10],
+  [5, 5, 10, 25, 25, 10, 5, 5],
+  [0, 0, 0, 20, 20, 0, 0, 0],
+  [5, -5, -10, 0, 0, -10, -5, 5],
+  [5, 10, 10, -20, -20, 10, 10, 5],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+]
+
+const PST_KNIGHT = [
+  [-50, -40, -30, -30, -30, -30, -40, -50],
+  [-40, -20, 0, 0, 0, 0, -20, -40],
+  [-30, 0, 10, 15, 15, 10, 0, -30],
+  [-30, 5, 15, 20, 20, 15, 5, -30],
+  [-30, 0, 15, 20, 20, 15, 0, -30],
+  [-30, 5, 10, 15, 15, 10, 5, -30],
+  [-40, -20, 0, 5, 5, 0, -20, -40],
+  [-50, -40, -30, -30, -30, -30, -40, -50],
+]
+
+const PST_BISHOP = [
+  [-20, -10, -10, -10, -10, -10, -10, -20],
+  [-10, 0, 0, 0, 0, 0, 0, -10],
+  [-10, 0, 5, 10, 10, 5, 0, -10],
+  [-10, 5, 5, 10, 10, 5, 5, -10],
+  [-10, 0, 10, 10, 10, 10, 0, -10],
+  [-10, 10, 10, 10, 10, 10, 10, -10],
+  [-10, 5, 0, 0, 0, 0, 5, -10],
+  [-20, -10, -10, -10, -10, -10, -10, -20],
+]
+
+const PST_ROOK = [
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [5, 10, 10, 10, 10, 10, 10, 5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [-5, 0, 0, 0, 0, 0, 0, -5],
+  [0, 0, 0, 5, 5, 0, 0, 0],
+]
+
+const PST_QUEEN = [
+  [-20, -10, -10, -5, -5, -10, -10, -20],
+  [-10, 0, 0, 0, 0, 0, 0, -10],
+  [-10, 0, 5, 5, 5, 5, 0, -10],
+  [-5, 0, 5, 5, 5, 5, 0, -5],
+  [0, 0, 5, 5, 5, 5, 0, -5],
+  [-10, 5, 5, 5, 5, 5, 0, -10],
+  [-10, 0, 5, 0, 0, 0, 0, -10],
+  [-20, -10, -10, -5, -5, -10, -10, -20],
+]
+
+const PST_KING = [
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-30, -40, -40, -50, -50, -40, -40, -30],
+  [-20, -30, -30, -40, -40, -30, -30, -20],
+  [-10, -20, -20, -20, -20, -20, -20, -10],
+  [20, 20, 0, 0, 0, 0, 20, 20],
+  [20, 30, 10, 0, 0, 10, 30, 20],
+]
+
+const PST_TABLES = {
+  p: PST_PAWN,
+  n: PST_KNIGHT,
+  b: PST_BISHOP,
+  r: PST_ROOK,
+  q: PST_QUEEN,
+  k: PST_KING,
+}
+
+function evaluateBoard(game, perspectiveColor) {
+  if (game.isCheckmate()) {
+    return game.turn() === perspectiveColor ? -99999 : 99999
+  }
+  if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition()) {
+    return 0
+  }
+
+  const board = game.board()
+  let score = 0
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const piece = board[r][c]
+      if (!piece) continue
+      const base = AI_PIECE_VALUES[piece.type] || 0
+      const table = PST_TABLES[piece.type]
+      const tableRow = piece.color === 'w' ? r : 7 - r
+      const positional = table ? table[tableRow][c] : 0
+      const total = base + positional
+      if (piece.color === perspectiveColor) {
+        score += total
+      } else {
+        score -= total
+      }
+    }
+  }
+
+  if (game.inCheck()) {
+    score += game.turn() === perspectiveColor ? -35 : 35
+  }
+
+  return score
+}
+
+function orderMoves(moves) {
+  return [...moves].sort((a, b) => {
+    const scoreMove = (m) => {
+      let s = 0
+      if (m.captured) {
+        s += 10 * (AI_PIECE_VALUES[m.captured] || 100) - (AI_PIECE_VALUES[m.piece] || 100) / 10
+      }
+      if (m.promotion) s += 800
+      if (m.san && (m.san.includes('+') || m.san.includes('#'))) s += 150
+      return s
+    }
+    return scoreMove(b) - scoreMove(a)
+  })
+}
+
+function minimax(game, depth, alpha, beta, maximizingPlayer, perspectiveColor) {
+  if (depth === 0 || game.isGameOver()) {
+    return evaluateBoard(game, perspectiveColor)
+  }
+
+  const legalMoves = orderMoves(game.moves({ verbose: true }))
+  if (legalMoves.length === 0) {
+    return evaluateBoard(game, perspectiveColor)
+  }
+
+  if (maximizingPlayer) {
+    let maxEval = -Infinity
+    for (const move of legalMoves) {
+      game.move(move)
+      const evaluation = minimax(game, depth - 1, alpha, beta, false, perspectiveColor)
+      game.undo()
+      if (evaluation > maxEval) maxEval = evaluation
+      if (evaluation > alpha) alpha = evaluation
+      if (beta <= alpha) break
+    }
+    return maxEval
+  } else {
+    let minEval = Infinity
+    for (const move of legalMoves) {
+      game.move(move)
+      const evaluation = minimax(game, depth - 1, alpha, beta, true, perspectiveColor)
+      game.undo()
+      if (evaluation < minEval) minEval = evaluation
+      if (evaluation < beta) beta = evaluation
+      if (beta <= alpha) break
+    }
+    return minEval
+  }
+}
+
+export function pickBotMove(game, difficulty = 'medium') {
   const moves = game.moves({ verbose: true })
   if (moves.length === 0) return null
-  const captures = moves.filter((move) => move.captured)
-  return randomItem(captures.length > 0 ? captures : moves)
+
+  const botColor = game.turn()
+
+  // Easy: mostly opportunistic captures with high randomness
+  if (difficulty === 'easy') {
+    for (const m of moves) {
+      if (m.san && m.san.includes('#')) return m
+    }
+    const captures = moves.filter((move) => move.captured)
+    if (captures.length > 0 && Math.random() < 0.65) {
+      return randomItem(captures)
+    }
+    return randomItem(moves)
+  }
+
+  // Medium (depth 2) or Hard (depth 3) with alpha-beta pruning
+  const searchDepth = difficulty === 'hard' ? 3 : 2
+  const jitter = difficulty === 'hard' ? 8 : 30
+  const ordered = orderMoves(moves)
+
+  let bestMove = ordered[0]
+  let bestScore = -Infinity
+
+  for (const move of ordered) {
+    game.move(move)
+    if (game.isCheckmate()) {
+      game.undo()
+      return move
+    }
+    const baseScore = minimax(game, searchDepth - 1, -Infinity, Infinity, false, botColor)
+    game.undo()
+
+    const noisyScore = baseScore + (Math.random() - 0.5) * jitter
+    if (noisyScore > bestScore) {
+      bestScore = noisyScore
+      bestMove = move
+    }
+  }
+
+  return bestMove
 }

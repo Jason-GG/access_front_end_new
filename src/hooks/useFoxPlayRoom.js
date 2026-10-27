@@ -263,7 +263,12 @@ export function useFoxPlayRoom({
     black: engineRef.current.captured?.b || [],
   }))
   const [comments, setComments] = useState([])
-  const [clockBase, setClockBase] = useState(null)
+  const [clockBase, setClockBase] = useState(() => ({
+    white: 600_000,
+    black: 600_000,
+    turn: 'w',
+    at: Date.now(),
+  }))
   const [drawOfferBy, setDrawOfferBy] = useState(null)
   const [takeback, setTakeback] = useState(null)
   const [connection, setConnection] = useState('idle')
@@ -279,6 +284,7 @@ export function useFoxPlayRoom({
   const socketRef = useRef(null)
   const roomDeletedRef = useRef(false)
   const pendingMoveRef = useRef(false)
+  const lastMoveSentAtRef = useRef(0)
   const fenRef = useRef(fen)
   const historyCountRef = useRef(history.length)
   const handleMessageRef = useRef(() => {})
@@ -345,6 +351,8 @@ export function useFoxPlayRoom({
     const state = extractClientState(source) || extractClientState(snap)
     const currentMoveCount = engineRef.current?.history?.()?.length ?? 0
     const currentFen = engineRef.current?.fen?.() ?? INITIAL_FOX_FEN
+    const isRecentLocalMove =
+      pendingMoveRef.current || Date.now() - lastMoveSentAtRef.current < 4000
 
     if (rawMoves && rawMoves.length > 0) {
       const latestMoveState = extractClientState(rawMoves[rawMoves.length - 1])
@@ -352,21 +360,19 @@ export function useFoxPlayRoom({
       const reconCount = reconstructed.history().length
       const reconFen = reconstructed.fen()
       if (
-        (reconCount >= currentMoveCount ||
-          !pendingMoveRef.current ||
-          (reconFen !== INITIAL_FOX_FEN && currentFen === INITIAL_FOX_FEN)) &&
+        reconCount >= currentMoveCount &&
         (reconFen !== currentFen || reconCount !== currentMoveCount)
       ) {
         engineRef.current = reconstructed
         syncFromEngine()
       }
-    } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !pendingMoveRef.current) {
+    } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !isRecentLocalMove) {
       if (state && isValidFoxFen(state.fen) && state.fen !== currentFen) {
-        applyClientStateToEngine(engineRef.current, state)
-        syncFromEngine()
-      } else if (currentMoveCount > 0 && (!state || state.fen === INITIAL_FOX_FEN)) {
-        engineRef.current = new FoxChess()
-        syncFromEngine()
+        const incomingMoveCount = Array.isArray(state.history) ? state.history.length : 0
+        if (incomingMoveCount >= currentMoveCount) {
+          applyClientStateToEngine(engineRef.current, state)
+          syncFromEngine()
+        }
       }
     } else if (state && isValidFoxFen(state.fen)) {
       const incomingMoveCount = Array.isArray(state.history) ? state.history.length : 0
@@ -374,14 +380,15 @@ export function useFoxPlayRoom({
       if (
         (currentMoveCount === 0 && state.fen !== currentFen) ||
         (!isIncomingInitial &&
-          !pendingMoveRef.current &&
+          !isRecentLocalMove &&
+          incomingMoveCount >= currentMoveCount &&
           (incomingMoveCount > currentMoveCount || state.fen !== currentFen))
       ) {
         applyClientStateToEngine(engineRef.current, state)
         syncFromEngine()
       }
     } else if (isValidFoxFen(source.fen)) {
-      if (!pendingMoveRef.current && source.fen !== currentFen && source.fen !== INITIAL_FOX_FEN) {
+      if (!isRecentLocalMove && source.fen !== currentFen && source.fen !== INITIAL_FOX_FEN) {
         engineRef.current.load(source.fen)
         syncFromEngine()
       }
@@ -395,15 +402,37 @@ export function useFoxPlayRoom({
       }))
     }
 
-    const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
-    const blackClock = source.clocks?.black ?? source.blackTimeMs ?? source.black_time_ms
+    const whiteClock =
+      source.clocks?.white ??
+      source.whiteTimeMs ??
+      source.white_time_ms ??
+      state?.clocks?.white
+    const blackClock =
+      source.clocks?.black ??
+      source.blackTimeMs ??
+      source.black_time_ms ??
+      state?.clocks?.black
+    const isGameFinished = mergedStatus === 'finished' || source.status === 'finished'
     if (whiteClock != null && blackClock != null) {
+      const wNum = Number(whiteClock)
+      const bNum = Number(blackClock)
       setClockBase({
-        white: Number(whiteClock),
-        black: Number(blackClock),
+        white: !isGameFinished && wNum <= 0 && bNum <= 0 ? 600_000 : wNum,
+        black: !isGameFinished && wNum <= 0 && bNum <= 0 ? 600_000 : bNum,
         turn: engineRef.current.turn(),
         at: Date.now(),
       })
+    } else {
+      setClockBase((prev) =>
+        prev
+          ? { ...prev, turn: engineRef.current.turn() }
+          : {
+              white: 600_000,
+              black: 600_000,
+              turn: engineRef.current.turn(),
+              at: Date.now(),
+            },
+      )
     }
   }, [syncFromEngine])
 
@@ -493,13 +522,27 @@ export function useFoxPlayRoom({
       }
 
       const nextClocks = msg.clocks || incomingState?.clocks
-      if (nextClocks) {
+      if (nextClocks && nextClocks.white != null && nextClocks.black != null) {
+        const wNum = Number(nextClocks.white)
+        const bNum = Number(nextClocks.black)
+        const isDone = Boolean(incomingState?.isGameOver || engine.isGameOver() || nextResult)
         setClockBase({
-          white: nextClocks.white ?? 0,
-          black: nextClocks.black ?? 0,
+          white: !isDone && wNum <= 0 && bNum <= 0 ? 600_000 : wNum,
+          black: !isDone && wNum <= 0 && bNum <= 0 ? 600_000 : bNum,
           turn: engine.turn(),
           at: Date.now(),
         })
+      } else {
+        setClockBase((prev) =>
+          prev
+            ? { ...prev, turn: engine.turn(), at: Date.now() }
+            : {
+                white: 600_000,
+                black: 600_000,
+                turn: engine.turn(),
+                at: Date.now(),
+              },
+        )
       }
 
       setDrawOfferBy(null)
@@ -1059,6 +1102,11 @@ export function useFoxPlayRoom({
       if (!executed) return false
 
       syncFromEngine()
+      setClockBase((prev) =>
+        prev
+          ? { ...prev, turn: eng.turn(), at: Date.now() }
+          : { white: 600_000, black: 600_000, turn: eng.turn(), at: Date.now() },
+      )
 
       const clientState = buildFoxClientState(eng, executed)
       const payload = {
@@ -1067,7 +1115,7 @@ export function useFoxPlayRoom({
         variant: 'fox',
         from,
         to,
-        promotion,
+        ...(executed.promotion ? { promotion: executed.promotion } : {}),
         san: executed.san,
         fen: clientState.fen,
         state: clientState,
@@ -1084,6 +1132,7 @@ export function useFoxPlayRoom({
       }
 
       pendingMoveRef.current = true
+      lastMoveSentAtRef.current = Date.now()
       playApi
         .makeRoomMove(roomId, payload)
         .then((res) => {

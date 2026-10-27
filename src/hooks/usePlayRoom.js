@@ -66,7 +66,12 @@ export function usePlayRoom({
     Array.isArray(initialCached?.history) ? initialCached.history : [],
   )
   const [comments, setComments] = useState([])
-  const [clockBase, setClockBase] = useState(null)
+  const [clockBase, setClockBase] = useState(() => ({
+    white: 600_000,
+    black: 600_000,
+    turn: 'w',
+    at: Date.now(),
+  }))
   const [drawOfferBy, setDrawOfferBy] = useState(null)
   const [takeback, setTakeback] = useState(null)
   const [connection, setConnection] = useState('idle')
@@ -84,6 +89,7 @@ export function usePlayRoom({
   const socketRef = useRef(null)
   const roomDeletedRef = useRef(false)
   const pendingMoveRef = useRef(false)
+  const lastMoveSentAtRef = useRef(0)
   const handleMessageRef = useRef(() => {})
   const refreshMovesRef = useRef(() => {})
 
@@ -163,27 +169,32 @@ export function usePlayRoom({
         source.clientState?.fen ||
         source.state?.clientState?.fen
 
+      const currentCount = historyRef.current ? historyRef.current.length : 0
+      const isRecentLocalMove =
+        pendingMoveRef.current || Date.now() - lastMoveSentAtRef.current < 4000
+
       if (rawMoves && rawMoves.length > 0) {
         const built = buildHistoryFromMoves(
           rawMoves,
           source.initialFen || source.game?.state?.initialFen,
         )
-        const currentCount = historyRef.current ? historyRef.current.length : 0
-        if (built.history.length >= currentCount || !pendingMoveRef.current) {
+        if (built.history.length >= currentCount) {
           const resolvedFen =
-            (incomingFen && incomingFen !== START_FEN ? incomingFen : null) ||
+            (incomingFen && incomingFen !== START_FEN && built.history.length > currentCount
+              ? incomingFen
+              : null) ||
             built.fen ||
             incomingFen ||
             START_FEN
           updateBoardState(resolvedFen, built.history)
         }
-      } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !pendingMoveRef.current) {
+      } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !isRecentLocalMove) {
         const clientHistory = Array.isArray(source.clientState?.history)
           ? source.clientState.history
           : Array.isArray(source.state?.clientState?.history)
             ? source.state.clientState.history
             : []
-        if (incomingFen) {
+        if (incomingFen && clientHistory.length >= currentCount) {
           updateBoardState(incomingFen, clientHistory)
         }
       } else {
@@ -193,18 +204,17 @@ export function usePlayRoom({
             ? source.state.clientState.history
             : null
         const hasExistingMoves =
-          (historyRef.current && historyRef.current.length > 0) ||
-          (fenRef.current && fenRef.current !== START_FEN)
+          currentCount > 0 || (fenRef.current && fenRef.current !== START_FEN)
         if (
           incomingFen &&
-          (!hasExistingMoves || incomingFen !== START_FEN || !pendingMoveRef.current)
+          !isRecentLocalMove &&
+          (!hasExistingMoves ||
+            (incomingFen !== START_FEN &&
+              (!clientHistory || clientHistory.length >= currentCount)))
         ) {
           updateBoardState(
             incomingFen,
-            clientHistory &&
-              (clientHistory.length >= (historyRef.current?.length || 0) || !pendingMoveRef.current)
-              ? clientHistory
-              : undefined,
+            clientHistory && clientHistory.length >= currentCount ? clientHistory : undefined,
           )
         }
       }
@@ -226,13 +236,27 @@ export function usePlayRoom({
 
       const whiteClock = source.clocks?.white ?? source.whiteTimeMs ?? source.white_time_ms
       const blackClock = source.clocks?.black ?? source.blackTimeMs ?? source.black_time_ms
+      const isGameFinished = mergedStatus === 'finished' || source.status === 'finished'
       if (whiteClock != null && blackClock != null) {
+        const wNum = Number(whiteClock)
+        const bNum = Number(blackClock)
         setClockBase({
-          white: Number(whiteClock),
-          black: Number(blackClock),
+          white: !isGameFinished && wNum <= 0 && bNum <= 0 ? 600_000 : wNum,
+          black: !isGameFinished && wNum <= 0 && bNum <= 0 ? 600_000 : bNum,
           turn: turnFromFen(fenRef.current || incomingFen),
           at: Date.now(),
         })
+      } else {
+        setClockBase((prev) =>
+          prev
+            ? { ...prev, turn: turnFromFen(fenRef.current || incomingFen) }
+            : {
+                white: 600_000,
+                black: 600_000,
+                turn: turnFromFen(fenRef.current || incomingFen),
+                at: Date.now(),
+              },
+        )
       }
     },
     [updateBoardState],
@@ -300,13 +324,27 @@ export function usePlayRoom({
       }
 
       const nextClocks = msg.clocks || state.clocks
-      if (nextClocks) {
+      if (nextClocks && nextClocks.white != null && nextClocks.black != null) {
+        const wNum = Number(nextClocks.white)
+        const bNum = Number(nextClocks.black)
+        const isDone = Boolean(state.gameOver || nextResult)
         setClockBase({
-          white: nextClocks.white ?? 0,
-          black: nextClocks.black ?? 0,
+          white: !isDone && wNum <= 0 && bNum <= 0 ? 600_000 : wNum,
+          black: !isDone && wNum <= 0 && bNum <= 0 ? 600_000 : bNum,
           turn: turnFromFen(resolvedFen),
           at: Date.now(),
         })
+      } else {
+        setClockBase((prev) =>
+          prev
+            ? { ...prev, turn: turnFromFen(resolvedFen), at: Date.now() }
+            : {
+                white: 600_000,
+                black: 600_000,
+                turn: turnFromFen(resolvedFen),
+                at: Date.now(),
+              },
+        )
       }
 
       setDrawOfferBy(null)
@@ -830,6 +868,12 @@ export function usePlayRoom({
         },
       ]
       updateBoardState(nextFen, nextHistory)
+      const nextTurn = executed.color === 'w' ? 'b' : 'w'
+      setClockBase((prev) =>
+        prev
+          ? { ...prev, turn: nextTurn, at: Date.now() }
+          : { white: 600_000, black: 600_000, turn: nextTurn, at: Date.now() },
+      )
 
       const isCheckmate = probe.isCheckmate()
       const isStalemate = probe.isStalemate()
@@ -882,6 +926,7 @@ export function usePlayRoom({
       }
 
       pendingMoveRef.current = true
+      lastMoveSentAtRef.current = Date.now()
       playApi
         .makeRoomMove(roomId, movePayload)
         .then((res) => {

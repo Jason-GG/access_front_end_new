@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CapturedPieces } from '../../components/chess/CapturedPieces'
 import { ChessBoard } from '../../components/chess/ChessBoard'
 import { GameTimer } from '../../components/chess/GameTimer'
@@ -9,10 +9,12 @@ import { RoomLobby } from '../../components/chess/RoomLobby'
 import { Button } from '../../components/common/Button'
 import { Loader } from '../../components/common/Loader'
 import { Modal } from '../../components/common/Modal'
-import { ROUTES } from '../../utils/constants'
+import { ROUTES, STORAGE_KEYS } from '../../utils/constants'
 import { cx } from '../../utils/helpers'
 import { useAuth } from '../../hooks/useAuth'
+import { useChessGame } from '../../hooks/useChessGame'
 import { usePlayRoom } from '../../hooks/usePlayRoom'
+import { loadTokenScopedState, saveTokenScopedState } from '../../services/request'
 import styles from './PlayPage.module.css'
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -380,9 +382,216 @@ function RoomView({ roomId, onLeave }) {
   )
 }
 
+function ChessPracticeView({ playMode, setPlayMode }) {
+  const { user } = useAuth()
+  const playerDisplayName = user?.username || user?.handle || 'You'
+  const [orientation, setOrientation] = useState(
+    () => loadTokenScopedState(STORAGE_KEYS.chessPracticeState)?.orientation || 'white',
+  )
+  const [difficulty, setDifficulty] = useState(
+    () => loadTokenScopedState(STORAGE_KEYS.chessPracticeState)?.difficulty || 'medium',
+  )
+
+  const {
+    fen,
+    history,
+    captured,
+    status,
+    turn,
+    isGameOver,
+    isPlayerTurn,
+    resetKey,
+    makeMove,
+    undo,
+    reset,
+    canUndo,
+  } = useChessGame({ playMode, orientation, difficulty })
+
+  const difficultyLabel =
+    difficulty === 'easy' ? 'Easy' : difficulty === 'hard' ? 'Hard' : 'Medium'
+
+  const statusText = (() => {
+    if (status.kind === 'checkmate') return status.label
+    if (status.kind === 'draw') return status.label
+    if (status.kind === 'check') return 'Check — King is threatened!'
+    if (playMode === 'bot') {
+      return isPlayerTurn
+        ? 'Your move'
+        : `Computer (${difficultyLabel}) is thinking…`
+    }
+    return turn === 'w' ? 'White’s turn' : 'Black’s turn'
+  })()
+
+  const canDragPiece = useCallback(
+    (pieceType) => {
+      if (isGameOver) return false
+      const color = pieceType?.[0]?.toLowerCase()
+      if (playMode === 'bot') {
+        return color === orientation[0] && isPlayerTurn
+      }
+      return color === turn
+    },
+    [isGameOver, playMode, orientation, isPlayerTurn, turn],
+  )
+
+  const lastMove = history[history.length - 1]
+
+  return (
+    <>
+      <div className={styles.controls}>
+        <div className={styles.segmented} role="radiogroup" aria-label="Game mode">
+          <button
+            className={cx(styles.segment, playMode === 'online' && styles.segmentActive)}
+            onClick={() => setPlayMode('online')}
+          >
+            Online Rooms
+          </button>
+          <button
+            className={cx(styles.segment, playMode === 'bot' && styles.segmentActive)}
+            onClick={() => setPlayMode('bot')}
+          >
+            Play Computer
+          </button>
+          <button
+            className={cx(styles.segment, playMode === 'pass' && styles.segmentActive)}
+            onClick={() => setPlayMode('pass')}
+          >
+            Pass & Play
+          </button>
+        </div>
+
+        <span
+          className={cx(
+            styles.statusLine,
+            'notation',
+            status.kind === 'check' && styles.statusCheck,
+          )}
+        >
+          {statusText}
+        </span>
+
+        {playMode === 'bot' && (
+          <>
+            <div className={styles.segmented} role="radiogroup" aria-label="Computer difficulty">
+              <button
+                className={cx(styles.segment, difficulty === 'easy' && styles.segmentActive)}
+                onClick={() => setDifficulty('easy')}
+              >
+                Easy
+              </button>
+              <button
+                className={cx(styles.segment, difficulty === 'medium' && styles.segmentActive)}
+                onClick={() => setDifficulty('medium')}
+              >
+                Medium
+              </button>
+              <button
+                className={cx(styles.segment, difficulty === 'hard' && styles.segmentActive)}
+                onClick={() => setDifficulty('hard')}
+              >
+                Hard
+              </button>
+            </div>
+
+            <div className={styles.segmented} role="radiogroup" aria-label="Play as color">
+              <button
+                className={cx(styles.segment, orientation === 'white' && styles.segmentActive)}
+                onClick={() => setOrientation('white')}
+              >
+                White
+              </button>
+              <button
+                className={cx(styles.segment, orientation === 'black' && styles.segmentActive)}
+                onClick={() => setOrientation('black')}
+              >
+                Black
+              </button>
+            </div>
+          </>
+        )}
+
+        <Button variant="secondary" size="sm" onClick={undo} disabled={!canUndo}>
+          Undo
+        </Button>
+        <Button variant="secondary" size="sm" onClick={reset}>
+          New game
+        </Button>
+      </div>
+
+      <div className={styles.grid}>
+        <div className={styles.boardCol}>
+          <ChessBoard
+            fen={fen}
+            orientation={orientation}
+            onPieceDrop={makeMove}
+            canDragPiece={canDragPiece}
+            lastMove={lastMove}
+          />
+        </div>
+
+        <aside className={styles.sideCol}>
+          <GameTimer turn={turn} running={!isGameOver} resetKey={resetKey} />
+
+          <div className={styles.players}>
+            {playMode === 'bot' ? (
+              <>
+                <PlayerRow
+                  label="Opponent"
+                  name={`Computer (${difficultyLabel})`}
+                  you={false}
+                  active={turn === (orientation === 'white' ? 'b' : 'w')}
+                />
+                <PlayerRow
+                  label="Player"
+                  name={playerDisplayName}
+                  you
+                  active={turn === orientation[0]}
+                />
+              </>
+            ) : (
+              <>
+                <PlayerRow
+                  label="White"
+                  name={user ? playerDisplayName : 'Player 1'}
+                  you={Boolean(user)}
+                  active={turn === 'w'}
+                />
+                <PlayerRow label="Black" name="Player 2" active={turn === 'b'} />
+              </>
+            )}
+          </div>
+
+          <CapturedPieces captured={captured} />
+          <MoveHistory history={history} status={status} />
+        </aside>
+      </div>
+    </>
+  )
+}
+
 export function PlayPage() {
   const navigate = useNavigate()
   const { roomId } = useParams()
+  const [searchParams] = useSearchParams()
+  const [playMode, setPlayModeState] = useState(
+    () => loadTokenScopedState(STORAGE_KEYS.chessPracticeState)?.playMode || 'online',
+  ) // 'online' | 'bot' | 'pass'
+
+  const setPlayMode = useCallback((nextMode) => {
+    setPlayModeState(nextMode)
+    const prev = loadTokenScopedState(STORAGE_KEYS.chessPracticeState) || {}
+    saveTokenScopedState(STORAGE_KEYS.chessPracticeState, {
+      ...prev,
+      playMode: nextMode,
+    })
+  }, [])
+
+  useEffect(() => {
+    const modeParam = searchParams.get('mode')
+    if (!roomId && (modeParam === 'bot' || modeParam === 'pass' || modeParam === 'online')) {
+      setPlayMode(modeParam)
+    }
+  }, [roomId, searchParams, setPlayMode])
 
   if (roomId) {
     return <RoomView key={roomId} roomId={roomId} onLeave={() => navigate(ROUTES.play)} />
@@ -398,6 +607,12 @@ export function PlayPage() {
           </div>
           <div className={styles.headerActions}>
             <Button
+              variant={playMode === 'bot' ? 'primary' : 'secondary'}
+              onClick={() => setPlayMode(playMode === 'bot' ? 'online' : 'bot')}
+            >
+              {playMode === 'bot' ? 'Online Rooms' : 'Play vs Computer'}
+            </Button>
+            <Button
               variant="secondary"
               onClick={() => navigate(ROUTES.foxPlay)}
             >
@@ -405,14 +620,44 @@ export function PlayPage() {
             </Button>
           </div>
         </header>
-        <RoomLobby
-          boardType="chess"
-          title="Normal 8×8 Chess Rooms"
-          eyebrow="Standard 8×8 Chess"
-          createLabel="Create 8×8 room"
-          emptyText="No open Normal 8×8 Chess rooms right now. Create one and the next player who joins takes the black seat."
-          onEnterRoom={(id) => navigate(`/play/${id}`)}
-        />
+
+        {playMode === 'online' ? (
+          <>
+            <div className={styles.controls}>
+              <div className={styles.segmented} role="radiogroup" aria-label="Game mode">
+                <button
+                  className={cx(styles.segment, playMode === 'online' && styles.segmentActive)}
+                  onClick={() => setPlayMode('online')}
+                >
+                  Online Rooms
+                </button>
+                <button
+                  className={cx(styles.segment, playMode === 'bot' && styles.segmentActive)}
+                  onClick={() => setPlayMode('bot')}
+                >
+                  Play Computer
+                </button>
+                <button
+                  className={cx(styles.segment, playMode === 'pass' && styles.segmentActive)}
+                  onClick={() => setPlayMode('pass')}
+                >
+                  Pass & Play
+                </button>
+              </div>
+            </div>
+
+            <RoomLobby
+              boardType="chess"
+              title="Normal 8×8 Chess Rooms"
+              eyebrow="Standard 8×8 Chess"
+              createLabel="Create 8×8 room"
+              emptyText="No open Normal 8×8 Chess rooms right now. Create one and the next player who joins takes the black seat."
+              onEnterRoom={(id) => navigate(`/play/${id}`)}
+            />
+          </>
+        ) : (
+          <ChessPracticeView playMode={playMode} setPlayMode={setPlayMode} />
+        )}
       </div>
     </section>
   )

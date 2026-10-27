@@ -93,7 +93,7 @@ export function createInitialBoard() {
 }
 
 export class FoxChess {
-  constructor() {
+  constructor(fen) {
     this.board = createInitialBoard()
     this.activeTurn = 'w'
     this.moveHistory = []
@@ -105,6 +105,9 @@ export class FoxChess {
     }
     this.halfmoveClock = 0
     this.fullmoveNumber = 1
+    if (fen) {
+      this.load(fen)
+    }
   }
 
   clone() {
@@ -200,7 +203,7 @@ export class FoxChess {
           const lower = ch.toLowerCase()
           let type = lower
           if (lower === 'c' || lower === 'x') type = 'rf'
-          else if (lower === 'f') type = 'f'
+          else if (lower === 'f' || lower === 'e') type = 'f'
           newBoard[r][f] = { type, color: isWhite ? 'w' : 'b' }
           f++
         }
@@ -697,15 +700,15 @@ export class FoxChess {
 
     // Handle Castling Rook movements
     if (isCastle === 'k') {
-      // Kingside: Rook moves from h(9) to f(7)
+      // Kingside: King moves e(5) -> f(7), Rook moves h(9) -> beta(6)
       const rook = this.board[r1][9]
       this.board[r1][9] = null
-      this.board[r1][7] = rook
+      this.board[r1][6] = rook
     } else if (isCastle === 'q') {
-      // Queenside: Rook moves from a(0) to alpha(3)
+      // Queenside: King moves e(5) -> alpha(3), Rook moves a(0) -> d(4)
       const rook = this.board[r1][0]
       this.board[r1][0] = null
-      this.board[r1][3] = rook
+      this.board[r1][4] = rook
     }
   }
 
@@ -723,7 +726,13 @@ export class FoxChess {
         const cleanParam = moveParam.replace(/[+#]/g, '')
         const found = legal.find((m) => {
           const san = this.generateSan(m)
-          return san === moveParam || san.replace(/[+#]/g, '') === cleanParam
+          const simpleSan = this.generateSan(m, false)
+          return (
+            san === moveParam ||
+            san.replace(/[+#]/g, '') === cleanParam ||
+            simpleSan === moveParam ||
+            simpleSan.replace(/[+#]/g, '') === cleanParam
+          )
         })
         if (found) {
           from = found.from
@@ -751,12 +760,22 @@ export class FoxChess {
 
     if (!matched) return null
 
+    // Formulate Standard Algebraic Notation (SAN) before mutating board
+    const san = this.generateSan(matched)
+
     // Valid move - execute!
     const targetPiece = this.board[matched.toCoords.r][matched.toCoords.f]
     const opponent = this.activeTurn === 'w' ? 'b' : 'w'
 
     if (targetPiece) {
       this.captured[this.activeTurn].push(targetPiece.type)
+      // If an opponent's rook is captured on its starting corner, clear that castling right
+      if (targetPiece.type === 'r') {
+        if (matched.toCoords.r === 0 && matched.toCoords.f === 0) this.castling.w.q = false
+        if (matched.toCoords.r === 0 && matched.toCoords.f === 9) this.castling.w.k = false
+        if (matched.toCoords.r === 9 && matched.toCoords.f === 0) this.castling.b.q = false
+        if (matched.toCoords.r === 9 && matched.toCoords.f === 9) this.castling.b.k = false
+      }
     } else if (matched.enPassant) {
       this.captured[this.activeTurn].push('p')
     }
@@ -769,8 +788,9 @@ export class FoxChess {
       this.castling[this.activeTurn].k = false
       this.castling[this.activeTurn].q = false
     } else if (matched.piece === 'r') {
-      if (matched.fromCoords.f === 0) this.castling[this.activeTurn].q = false
-      if (matched.fromCoords.f === 9) this.castling[this.activeTurn].k = false
+      const homeRank = this.activeTurn === 'w' ? 0 : 9
+      if (matched.fromCoords.r === homeRank && matched.fromCoords.f === 0) this.castling[this.activeTurn].q = false
+      if (matched.fromCoords.r === homeRank && matched.fromCoords.f === 9) this.castling[this.activeTurn].k = false
     }
 
     // Update En Passant square
@@ -781,8 +801,6 @@ export class FoxChess {
       this.enPassantSquare = null
     }
 
-    // Formulate Standard Algebraic Notation (SAN)
-    const san = this.generateSan(matched)
     const executedMove = {
       ...matched,
       san,
@@ -799,7 +817,7 @@ export class FoxChess {
     return executedMove
   }
 
-  generateSan(m) {
+  generateSan(m, disambiguate = true) {
     if (m.isCastle === 'k') return 'O-O'
     if (m.isCastle === 'q') return 'O-O-O'
 
@@ -825,11 +843,31 @@ export class FoxChess {
         san += `=${m.promotion.toUpperCase()}`
       }
     } else {
-      san = `${pieceChar}${isCapture ? 'x' : ''}${m.to}`
+      let disambig = ''
+      if (disambiguate && m.piece !== 'k' && this.board[m.fromCoords.r]?.[m.fromCoords.f]) {
+        const peers = this.moves({ verbose: true }).filter(
+          (other) => other.piece === m.piece && other.to === m.to && other.from !== m.from,
+        )
+        if (peers.length > 0) {
+          const sameFile = peers.some((p) => p.fromCoords.f === m.fromCoords.f)
+          const sameRank = peers.some((p) => p.fromCoords.r === m.fromCoords.r)
+          if (!sameFile) {
+            disambig = FOX_FILES[m.fromCoords.f]
+          } else if (!sameRank) {
+            disambig = FOX_RANKS[m.fromCoords.r]
+          } else {
+            disambig = `${FOX_FILES[m.fromCoords.f]}${FOX_RANKS[m.fromCoords.r]}`
+          }
+        }
+      }
+      san = `${pieceChar}${disambig}${isCapture ? 'x' : ''}${m.to}`
     }
 
     // Check / Checkmate signs
     const sim = this.clone()
+    if (sim.board[m.fromCoords.r]?.[m.fromCoords.f]) {
+      sim.applyRawMove(m)
+    }
     sim.activeTurn = this.activeTurn === 'w' ? 'b' : 'w'
     if (sim.isCheckmate()) {
       san += '#'
@@ -898,44 +936,139 @@ export class FoxChess {
   }
 }
 
-// Bot move selection with tactical priority (Checkmates > High-value Captures > Central control)
-export function pickFoxBotMove(game) {
+function evaluateFoxBoard(game, perspectiveColor) {
+  let score = 0
+  for (let r = 0; r < 10; r++) {
+    for (let f = 0; f < 10; f++) {
+      const p = game.board[r][f]
+      if (!p) continue
+      const base = (FOX_PIECE_VALUES[p.type] || 1) * 100
+      const distCenter = Math.abs(f - 4.5) + Math.abs(r - 4.5)
+      let positional = (9 - distCenter) * 3
+      if (p.type === 'p') {
+        const advancement = p.color === 'w' ? r : 9 - r
+        positional += advancement * 6
+      } else if (p.type === 'k') {
+        positional = -distCenter * 1.5
+      }
+      const total = base + positional
+      if (p.color === perspectiveColor) {
+        score += total
+      } else {
+        score -= total
+      }
+    }
+  }
+  return score
+}
+
+// Bot move selection supporting Easy, Medium, and Hard difficulty levels
+export function pickFoxBotMove(game, difficulty = 'medium') {
   const legalMoves = game.moves({ verbose: true })
   if (legalMoves.length === 0) return null
+
+  const botColor = game.activeTurn
+  const opponentColor = botColor === 'w' ? 'b' : 'w'
 
   // 1. Can we deliver checkmate immediately?
   for (const m of legalMoves) {
     const sim = game.clone()
     sim.applyRawMove(m)
-    sim.activeTurn = game.activeTurn === 'w' ? 'b' : 'w'
+    sim.activeTurn = opponentColor
     if (sim.isCheckmate()) {
       return m
     }
   }
 
-  // 2. Score moves: prioritize captures with material difference
+  if (difficulty === 'easy') {
+    const captures = legalMoves.filter((m) => m.captured)
+    if (captures.length > 0 && Math.random() < 0.55) {
+      return captures[Math.floor(Math.random() * captures.length)]
+    }
+    return legalMoves[Math.floor(Math.random() * legalMoves.length)]
+  }
+
+  // Score candidate moves (Medium & Hard)
   const scored = legalMoves.map((m) => {
-    let score = Math.random() * 0.5 // small randomness to avoid predictability
+    const jitter = difficulty === 'hard' ? 6 : 25
+    let score = (Math.random() - 0.5) * jitter
 
     if (m.captured) {
       const victimValue = FOX_PIECE_VALUES[m.captured] || 1
       const attackerValue = FOX_PIECE_VALUES[m.piece] || 1
-      score += victimValue * 10 - attackerValue
+      score += victimValue * 110 - attackerValue * 12
     }
 
-    // Bonus for developing foxes and minor pieces towards center
     const toCoords = m.toCoords
     const distCenter = Math.abs(toCoords.f - 4.5) + Math.abs(toCoords.r - 4.5)
-    score += (9 - distCenter) * 0.2
+    score += (9 - distCenter) * 4
 
-    // Bonus for promotion
     if (m.promotion) {
-      score += 8
+      score += 800
+    }
+    if (m.isCastle) {
+      score += 65
     }
 
-    return { move: m, score }
+    // Simulate move to check safety and opponent replies
+    const sim = game.clone()
+    sim.applyRawMove(m)
+    sim.activeTurn = opponentColor
+
+    if (sim.inCheck(opponentColor)) {
+      score += 35
+    }
+
+    // Check if the moved piece lands on an attacked square
+    const myPieceValue = (FOX_PIECE_VALUES[m.promotion || m.piece] || 1) * 100
+    if (sim.isSquareAttacked(toCoords.f, toCoords.r, opponentColor)) {
+      const isDefended = sim.isSquareAttacked(toCoords.f, toCoords.r, botColor)
+      score -= isDefended ? myPieceValue * 0.45 : myPieceValue * 0.9
+    }
+
+    return { move: m, sim, score }
   })
 
   scored.sort((a, b) => b.score - a.score)
+
+  // Hard difficulty: 2-ply lookahead on top candidate moves
+  if (difficulty === 'hard') {
+    const topCandidates = scored.slice(0, 14)
+    let bestMove = topCandidates[0].move
+    let bestEval = -Infinity
+
+    for (const cand of topCandidates) {
+      const sim = cand.sim
+      const oppPseudo = []
+      for (let r = 0; r < 10; r++) {
+        for (let f = 0; f < 10; f++) {
+          const p = sim.board[r][f]
+          if (p && p.color === opponentColor) {
+            oppPseudo.push(...sim.getPseudoMoves(f, r))
+          }
+        }
+      }
+
+      let worstReplyEval = evaluateFoxBoard(sim, botColor)
+      for (const oppMove of oppPseudo) {
+        if (!oppMove.captured && !oppMove.promotion) continue
+        const nextSim = sim.clone()
+        nextSim.applyRawMove(oppMove)
+        if (nextSim.inCheck(opponentColor)) continue
+        const replyEval = evaluateFoxBoard(nextSim, botColor)
+        if (replyEval < worstReplyEval) {
+          worstReplyEval = replyEval
+        }
+      }
+
+      const combinedScore = worstReplyEval + cand.score * 0.35
+      if (combinedScore > bestEval) {
+        bestEval = combinedScore
+        bestMove = cand.move
+      }
+    }
+    return bestMove
+  }
+
   return scored[0].move
 }

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FoxChess, pickFoxBotMove } from '../services/foxChessEngine'
-import { loadTokenScopedState, saveTokenScopedState } from '../services/request'
+import {
+  getStoredAccessToken,
+  loadTokenScopedState,
+  saveTokenScopedState,
+} from '../services/request'
+import * as playApi from '../api/playApi'
 import { STORAGE_KEYS } from '../utils/constants'
 
 function createInitialFoxPracticeGame() {
@@ -37,6 +42,7 @@ function createInitialFoxPracticeGame() {
 export function useFoxChessGame({
   playMode = 'bot', // 'bot' | 'pass'
   orientation = 'white',
+  difficulty = 'medium',
   botDelayMs = 700,
 } = {}) {
   const gameRef = useRef(null)
@@ -45,10 +51,56 @@ export function useFoxChessGame({
   }
 
   const botTimerRef = useRef(null)
+  const dbGameIdRef = useRef(
+    loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.dbGameId || null,
+  )
+  const creatingDbGameRef = useRef(null)
+  const [resetKey, setResetKey] = useState(0)
   const [, setTick] = useState(0) // Force re-render on state mutation
 
+  const recordPracticeMoveToDb = useCallback((moveObj, nextFen, isGameOver, result) => {
+    if (!getStoredAccessToken() || !moveObj) return
+    ;(async () => {
+      try {
+        let gameId = dbGameIdRef.current
+        if (!gameId) {
+          if (!creatingDbGameRef.current) {
+            creatingDbGameRef.current = playApi
+              .createGame({
+                boardType: 'achess',
+                variant: 'fox',
+                fen: new FoxChess().fen(),
+              })
+              .then((res) => res?.game?.id || res?.id || null)
+              .catch(() => null)
+          }
+          gameId = await creatingDbGameRef.current
+          creatingDbGameRef.current = null
+          if (gameId) {
+            dbGameIdRef.current = gameId
+          }
+        }
+        if (gameId) {
+          await playApi.makeGameMove(gameId, {
+            boardType: 'achess',
+            variant: 'fox',
+            from: moveObj.from,
+            to: moveObj.to,
+            ...(moveObj.promotion ? { promotion: moveObj.promotion } : {}),
+            san: moveObj.san,
+            fen: nextFen,
+            gameOver: isGameOver,
+            ...(result ? { result } : {}),
+          })
+        }
+      } catch {
+        // Ignore background persistence errors in practice mode
+      }
+    })()
+  }, [])
+
   const persistPracticeState = useCallback(
-    (mode = playMode, orient = orientation) => {
+    (mode = playMode, orient = orientation, diff = difficulty) => {
       const game = gameRef.current
       if (!game) return
       const verboseHistory = game.history({ verbose: true }).map((m) => ({
@@ -63,12 +115,14 @@ export function useFoxChessGame({
       saveTokenScopedState(STORAGE_KEYS.foxPracticeState, {
         playMode: mode,
         orientation: orient,
+        difficulty: diff,
+        dbGameId: dbGameIdRef.current,
         fen: game.fen(),
         history: verboseHistory,
         captured: { white: game.captured.w, black: game.captured.b },
       })
     },
-    [playMode, orientation],
+    [playMode, orientation, difficulty],
   )
 
   const sync = useCallback(() => {
@@ -77,8 +131,8 @@ export function useFoxChessGame({
   }, [persistPracticeState])
 
   useEffect(() => {
-    persistPracticeState(playMode, orientation)
-  }, [playMode, orientation, persistPracticeState])
+    persistPracticeState(playMode, orientation, difficulty)
+  }, [playMode, orientation, difficulty, persistPracticeState])
 
   const scheduleBotMove = useCallback(
     (delay = botDelayMs) => {
@@ -87,18 +141,32 @@ export function useFoxChessGame({
         const game = gameRef.current
         if (game.isGameOver()) return
 
-        const botMove = pickFoxBotMove(game)
+        const botMove = pickFoxBotMove(game, difficulty)
         if (botMove) {
-          game.move({
+          const executed = game.move({
             from: botMove.from,
             to: botMove.to,
             promotion: botMove.promotion || 'q',
           })
+          if (executed) {
+            recordPracticeMoveToDb(
+              executed,
+              game.fen(),
+              game.isGameOver(),
+              game.isCheckmate()
+                ? executed.color === 'w'
+                  ? 'white_checkmate'
+                  : 'black_checkmate'
+                : game.isStalemate()
+                  ? 'stalemate'
+                  : null,
+            )
+          }
         }
         sync()
       }, delay)
     },
-    [botDelayMs, sync],
+    [botDelayMs, difficulty, recordPracticeMoveToDb, sync],
   )
 
   const handleMove = useCallback(
@@ -114,6 +182,18 @@ export function useFoxChessGame({
 
       if (!executed) return false
 
+      recordPracticeMoveToDb(
+        executed,
+        game.fen(),
+        game.isGameOver(),
+        game.isCheckmate()
+          ? executed.color === 'w'
+            ? 'white_checkmate'
+            : 'black_checkmate'
+          : game.isStalemate()
+            ? 'stalemate'
+            : null,
+      )
       sync()
 
       // If playing against bot, bot responds if it's black's turn
@@ -124,7 +204,7 @@ export function useFoxChessGame({
 
       return true
     },
-    [playMode, orientation, scheduleBotMove, sync],
+    [playMode, orientation, recordPracticeMoveToDb, scheduleBotMove, sync],
   )
 
   const undo = useCallback(() => {
@@ -146,7 +226,10 @@ export function useFoxChessGame({
 
   const reset = useCallback(() => {
     clearTimeout(botTimerRef.current)
+    dbGameIdRef.current = null
+    creatingDbGameRef.current = null
     gameRef.current = new FoxChess()
+    setResetKey((k) => k + 1)
     sync()
 
     // If bot plays white, it opens first
@@ -186,6 +269,7 @@ export function useFoxChessGame({
     turn: game.turn(),
     isGameOver: game.isGameOver(),
     isPlayerTurn,
+    resetKey,
     makeMove: handleMove,
     undo,
     reset,

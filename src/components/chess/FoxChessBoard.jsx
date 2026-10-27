@@ -61,8 +61,12 @@ export function FoxChessBoard({
   // Attempt move or open promotion dialog if applicable
   const tryMakeMove = useCallback(
     (sourceSquare, targetSquare) => {
-      if (disabled) return false
-      const legal = legalMovesMap[targetSquare]
+      if (disabled || !game || !sourceSquare || !targetSquare) return false
+      let legal = sourceSquare === selectedSquare ? legalMovesMap[targetSquare] : null
+      if (!legal) {
+        const movesFromSource = game.moves({ square: sourceSquare, verbose: true })
+        legal = movesFromSource.find((m) => m.to === targetSquare) || null
+      }
       if (!legal) return false
 
       // Check if move requires promotion
@@ -75,7 +79,7 @@ export function FoxChessBoard({
       setSelectedSquare(null)
       return success
     },
-    [disabled, legalMovesMap, onPieceDrop],
+    [disabled, game, selectedSquare, legalMovesMap, onPieceDrop],
   )
 
   const handleSelectSquare = useCallback(
@@ -232,6 +236,7 @@ export function FoxChessBoard({
                     className={`${styles.piece} ${draggingSquare === sq ? styles.dragging : ''}`}
                     draggable={!disabled && (!canDragPiece || canDragPiece(piece))}
                     onDragStart={(e) => handleDragStart(e, sq, piece)}
+                    onDragEnd={() => setDraggingSquare(null)}
                   >
                     <PieceIcon pieceCode={pieceCode} />
                   </div>

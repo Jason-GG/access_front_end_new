@@ -7,7 +7,12 @@ import {
   makeMove,
   pickBotMove,
 } from '../services/chessService'
-import { loadTokenScopedState, saveTokenScopedState } from '../services/request'
+import {
+  getStoredAccessToken,
+  loadTokenScopedState,
+  saveTokenScopedState,
+} from '../services/request'
+import * as playApi from '../api/playApi'
 
 function createInitialChessPracticeGame() {
   const game = createGame()
@@ -42,19 +47,90 @@ function createInitialChessPracticeGame() {
   return game
 }
 
-export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey = 0 } = {}) {
+export function useChessGame({
+  playMode = 'bot',
+  orientation = 'white',
+  difficulty = 'medium',
+  resetKey = 0,
+} = {}) {
   const gameRef = useRef(null)
   if (!gameRef.current) {
     gameRef.current = createInitialChessPracticeGame()
   }
 
   const botTimerRef = useRef(null)
+  const dbGameIdRef = useRef(
+    loadTokenScopedState(STORAGE_KEYS.chessPracticeState)?.dbGameId || null,
+  )
+  const creatingDbGameRef = useRef(null)
   const initialVerbose = gameRef.current.history({ verbose: true })
   const [fen, setFen] = useState(() => gameRef.current.fen())
   const [history, setHistory] = useState(() => initialVerbose)
   const [captured, setCaptured] = useState(() => getCapturedPieces(initialVerbose))
   const [status, setStatus] = useState(() => getGameStatus(gameRef.current))
   const [turn, setTurn] = useState(() => gameRef.current.turn())
+  const [internalResetKey, setInternalResetKey] = useState(0)
+
+  const recordPracticeMoveToDb = useCallback((moveObj, nextFen, isGameOver, result) => {
+    if (!getStoredAccessToken() || !moveObj) return
+    ;(async () => {
+      try {
+        let gameId = dbGameIdRef.current
+        if (!gameId) {
+          if (!creatingDbGameRef.current) {
+            creatingDbGameRef.current = playApi
+              .createGame({ boardType: 'chess' })
+              .then((res) => res?.game?.id || res?.id || null)
+              .catch(() => null)
+          }
+          gameId = await creatingDbGameRef.current
+          creatingDbGameRef.current = null
+          if (gameId) {
+            dbGameIdRef.current = gameId
+          }
+        }
+        if (gameId) {
+          await playApi.makeGameMove(gameId, {
+            boardType: 'chess',
+            from: moveObj.from,
+            to: moveObj.to,
+            ...(moveObj.promotion ? { promotion: moveObj.promotion } : {}),
+            san: moveObj.san,
+            fen: nextFen,
+            gameOver: isGameOver,
+            ...(result ? { result } : {}),
+          })
+        }
+      } catch {
+        // Ignore background persistence errors in practice mode
+      }
+    })()
+  }, [])
+
+  const persistPracticeState = useCallback(
+    (mode = playMode, orient = orientation, diff = difficulty) => {
+      const game = gameRef.current
+      if (!game) return
+      const verbose = game.history({ verbose: true })
+      saveTokenScopedState(STORAGE_KEYS.chessPracticeState, {
+        playMode: mode,
+        orientation: orient,
+        difficulty: diff,
+        dbGameId: dbGameIdRef.current,
+        fen: game.fen(),
+        history: verbose.map((m) => ({
+          from: m.from,
+          to: m.to,
+          promotion: m.promotion,
+          san: m.san,
+          color: m.color,
+          piece: m.piece,
+          captured: m.captured,
+        })),
+      })
+    },
+    [playMode, orientation, difficulty],
+  )
 
   const sync = useCallback(() => {
     const game = gameRef.current
@@ -65,36 +141,45 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     setCaptured(getCapturedPieces(verbose))
     setStatus(getGameStatus(game))
     setTurn(game.turn())
-    saveTokenScopedState(STORAGE_KEYS.chessPracticeState, {
-      fen: nextFen,
-      history: verbose.map((m) => ({
-        from: m.from,
-        to: m.to,
-        promotion: m.promotion,
-        san: m.san,
-        color: m.color,
-        piece: m.piece,
-        captured: m.captured,
-      })),
-    })
-  }, [])
+    persistPracticeState()
+  }, [persistPracticeState])
+
+  useEffect(() => {
+    persistPracticeState(playMode, orientation, difficulty)
+  }, [playMode, orientation, difficulty, persistPracticeState])
 
   const scheduleBotMove = useCallback(
     (delay = GAME.botDelayMs) => {
       clearTimeout(botTimerRef.current)
       botTimerRef.current = setTimeout(() => {
-        const botMove = pickBotMove(gameRef.current)
+        const game = gameRef.current
+        if (game.isGameOver()) return
+        const botMove = pickBotMove(game, difficulty)
         if (botMove) {
-          gameRef.current.move({
+          const executed = game.move({
             from: botMove.from,
             to: botMove.to,
             promotion: botMove.promotion || 'q',
           })
+          if (executed) {
+            recordPracticeMoveToDb(
+              executed,
+              game.fen(),
+              game.isGameOver(),
+              game.isCheckmate()
+                ? executed.color === 'w'
+                  ? 'white_checkmate'
+                  : 'black_checkmate'
+                : game.isStalemate()
+                  ? 'stalemate'
+                  : null,
+            )
+          }
         }
         sync()
       }, delay)
     },
-    [sync],
+    [difficulty, recordPracticeMoveToDb, sync],
   )
 
   const handleMove = useCallback(
@@ -105,13 +190,26 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
       const move = makeMove(game, sourceSquare, targetSquare)
       if (!move) return false
 
+      recordPracticeMoveToDb(
+        move,
+        game.fen(),
+        game.isGameOver(),
+        game.isCheckmate()
+          ? move.color === 'w'
+            ? 'white_checkmate'
+            : 'black_checkmate'
+          : game.isStalemate()
+            ? 'stalemate'
+            : null,
+      )
       sync()
-      if (playMode === 'bot' && !game.isGameOver() && game.turn() === 'b') {
+      const botColor = orientation === 'white' ? 'b' : 'w'
+      if (playMode === 'bot' && !game.isGameOver() && game.turn() === botColor) {
         scheduleBotMove()
       }
       return true
     },
-    [playMode, scheduleBotMove, sync],
+    [playMode, orientation, recordPracticeMoveToDb, scheduleBotMove, sync],
   )
 
   const undo = useCallback(() => {
@@ -124,19 +222,26 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     if (playMode === 'bot') {
       // If the bot answered, take its move back too so the player retries
       // from their own last move.
-      if (verbose[verbose.length - 1].color === 'b') {
+      const botColor = orientation === 'white' ? 'b' : 'w'
+      if (verbose[verbose.length - 1].color === botColor) {
         game.undo()
       }
     }
     game.undo()
     sync()
-  }, [playMode, sync])
+  }, [playMode, orientation, sync])
 
   const reset = useCallback(() => {
     clearTimeout(botTimerRef.current)
+    dbGameIdRef.current = null
+    creatingDbGameRef.current = null
     gameRef.current = createGame()
+    setInternalResetKey((k) => k + 1)
     sync()
-  }, [sync])
+    if (playMode === 'bot' && orientation === 'black') {
+      scheduleBotMove(GAME.botDelayMs)
+    }
+  }, [playMode, orientation, scheduleBotMove, sync])
 
   // Reset when a new game is explicitly requested (from the button or GameContext).
   useEffect(() => {
@@ -161,6 +266,8 @@ export function useChessGame({ playMode = 'bot', orientation = 'white', resetKey
     captured,
     status,
     turn,
+    isGameOver: gameRef.current.isGameOver(),
+    resetKey: internalResetKey,
     makeMove: handleMove,
     undo,
     reset,

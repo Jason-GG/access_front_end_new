@@ -23,18 +23,16 @@ export function getRoomBoardType(raw) {
     room.game?.state?.boardType,
     room.game?.state?.board_type,
     room.game?.state?.clientState?.boardType,
+    room.game?.state?.clientState?.board_type,
     room.game?.clientState?.boardType,
+    room.game?.clientState?.board_type,
     room.state?.boardType,
     room.state?.board_type,
     room.state?.clientState?.boardType,
+    room.state?.clientState?.board_type,
     room.clientState?.boardType,
     room.clientState?.board_type,
   ]
-
-  for (const c of candidates) {
-    if (c === 'achess' || c === 'fox' || c === '10x10') return 'achess'
-    if (c === 'chess' || c === '8x8') return 'chess'
-  }
 
   const variants = [
     room.variant,
@@ -43,35 +41,83 @@ export function getRoomBoardType(raw) {
     room.game?.state?.clientState?.variant,
     room.game?.clientState?.variant,
     room.state?.variant,
+    room.state?.clientState?.variant,
     room.clientState?.variant,
   ]
 
-  for (const v of variants) {
-    if (v === 'fox' || v === 'achess' || v === '10x10') return 'achess'
-    if (v === 'chess' || v === 'standard' || v === '8x8') return 'chess'
-  }
-
   const fens = [
     room.fen,
+    room.initialFen,
     room.clientState?.fen,
     room.state?.fen,
+    room.state?.initialFen,
     room.game?.fen,
+    room.game?.initialFen,
     room.game?.state?.fen,
+    room.game?.state?.initialFen,
     room.game?.state?.clientState?.fen,
     room.game?.clientState?.fen,
   ]
 
-  for (const f of fens) {
-    if (typeof f === 'string' && f.trim()) {
-      const ranks = f.trim().split(/\s+/)[0]?.split('/')
-      if (Array.isArray(ranks)) {
-        if (ranks.length === 10) return 'achess'
-        if (ranks.length === 8) return 'chess'
+  // Check ALL signals for 10x10 / achess / fox FIRST so a default 'chess' column
+  // on game_states never masks a 10x10 room.
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const lower = c.trim().toLowerCase()
+      if (lower === 'achess' || lower === 'fox' || lower === '10x10' || lower === '10*10') {
+        return 'achess'
       }
     }
   }
 
+  for (const v of variants) {
+    if (typeof v === 'string') {
+      const lower = v.trim().toLowerCase()
+      if (lower === 'fox' || lower === 'achess' || lower === '10x10' || lower === '10*10') {
+        return 'achess'
+      }
+    }
+  }
+
+  for (const f of fens) {
+    if (typeof f === 'string' && f.trim()) {
+      const ranks = f.trim().split(/\s+/)[0]?.split('/')
+      if (Array.isArray(ranks) && ranks.length === 10) {
+        return 'achess'
+      }
+    }
+  }
+
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const lower = c.trim().toLowerCase()
+      if (lower === 'chess' || lower === '8x8' || lower === '8*8') return 'chess'
+    }
+  }
+
+  for (const v of variants) {
+    if (typeof v === 'string') {
+      const lower = v.trim().toLowerCase()
+      if (lower === 'chess' || lower === 'standard' || lower === '8x8' || lower === '8*8') return 'chess'
+    }
+  }
+
+  for (const f of fens) {
+    if (typeof f === 'string' && f.trim()) {
+      const ranks = f.trim().split(/\s+/)[0]?.split('/')
+      if (Array.isArray(ranks) && ranks.length === 8) return 'chess'
+    }
+  }
+
   return 'chess'
+}
+
+export function createGame(payload = {}) {
+  return httpClient.post('/games', payload)
+}
+
+export function makeGameMove(gameId, payload = {}) {
+  return httpClient.post(`/games/${gameId}/moves`, payload)
 }
 
 export function listRooms({ status = 'waiting', limit = 50, cursor, boardType } = {}) {

@@ -401,6 +401,9 @@ function FoxPracticeView({ playMode, setPlayMode }) {
   const [orientation, setOrientation] = useState(
     () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.orientation || 'white',
   )
+  const [difficulty, setDifficulty] = useState(
+    () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.difficulty || 'medium',
+  )
 
   const {
     game,
@@ -410,18 +413,24 @@ function FoxPracticeView({ playMode, setPlayMode }) {
     turn,
     isGameOver,
     isPlayerTurn,
+    resetKey,
     makeMove,
     undo,
     reset,
     canUndo,
-  } = useFoxChessGame({ playMode, orientation })
+  } = useFoxChessGame({ playMode, orientation, difficulty })
+
+  const difficultyLabel =
+    difficulty === 'easy' ? 'Easy' : difficulty === 'hard' ? 'Hard' : 'Medium'
 
   const statusText = (() => {
     if (status.kind === 'checkmate') return status.label
     if (status.kind === 'draw') return status.label
     if (status.kind === 'check') return 'Check — King is threatened!'
     if (playMode === 'bot') {
-      return isPlayerTurn ? 'Your move' : 'House bot is calculating…'
+      return isPlayerTurn
+        ? 'Your move'
+        : `Computer (${difficultyLabel}) is calculating…`
     }
     return turn === 'w' ? 'White’s turn' : 'Black’s turn'
   })()
@@ -450,7 +459,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
             className={cx(styles.segment, playMode === 'bot' && styles.segmentActive)}
             onClick={() => setPlayMode('bot')}
           >
-            Play Bot
+            Play Computer
           </button>
           <button
             className={cx(styles.segment, playMode === 'pass' && styles.segmentActive)}
@@ -471,20 +480,43 @@ function FoxPracticeView({ playMode, setPlayMode }) {
         </span>
 
         {playMode === 'bot' && (
-          <div className={styles.segmented} role="radiogroup" aria-label="Play as color">
-            <button
-              className={cx(styles.segment, orientation === 'white' && styles.segmentActive)}
-              onClick={() => setOrientation('white')}
-            >
-              White
-            </button>
-            <button
-              className={cx(styles.segment, orientation === 'black' && styles.segmentActive)}
-              onClick={() => setOrientation('black')}
-            >
-              Black
-            </button>
-          </div>
+          <>
+            <div className={styles.segmented} role="radiogroup" aria-label="Computer difficulty">
+              <button
+                className={cx(styles.segment, difficulty === 'easy' && styles.segmentActive)}
+                onClick={() => setDifficulty('easy')}
+              >
+                Easy
+              </button>
+              <button
+                className={cx(styles.segment, difficulty === 'medium' && styles.segmentActive)}
+                onClick={() => setDifficulty('medium')}
+              >
+                Medium
+              </button>
+              <button
+                className={cx(styles.segment, difficulty === 'hard' && styles.segmentActive)}
+                onClick={() => setDifficulty('hard')}
+              >
+                Hard
+              </button>
+            </div>
+
+            <div className={styles.segmented} role="radiogroup" aria-label="Play as color">
+              <button
+                className={cx(styles.segment, orientation === 'white' && styles.segmentActive)}
+                onClick={() => setOrientation('white')}
+              >
+                White
+              </button>
+              <button
+                className={cx(styles.segment, orientation === 'black' && styles.segmentActive)}
+                onClick={() => setOrientation('black')}
+              >
+                Black
+              </button>
+            </div>
+          </>
         )}
 
         <Button variant="secondary" size="sm" onClick={undo} disabled={!canUndo}>
@@ -508,12 +540,14 @@ function FoxPracticeView({ playMode, setPlayMode }) {
         </div>
 
         <aside className={styles.sideCol}>
+          <GameTimer turn={turn} running={!isGameOver} resetKey={resetKey} />
+
           <div className={styles.players}>
             {playMode === 'bot' ? (
               <>
                 <PlayerRow
                   label="Opponent"
-                  name="House Bot"
+                  name={`Computer (${difficultyLabel})`}
                   you={false}
                   active={turn === (orientation === 'white' ? 'b' : 'w')}
                 />
@@ -639,6 +673,7 @@ export function FoxPlayPage() {
       const res = await playApi.createRoom({
         boardType: 'achess',
         variant: 'fox',
+        fen: initialEngine.fen(),
         state: initialState,
       })
       const newRoomId = res?.room?.id || res?.id
@@ -686,6 +721,13 @@ export function FoxPlayPage() {
             >
               {creatingRoom ? 'Creating room…' : 'Create Fox Chess Room'}
             </Button>
+            <Button
+              variant={playMode === 'bot' ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => setPlayMode(playMode === 'bot' ? 'online' : 'bot')}
+            >
+              {playMode === 'bot' ? 'Online Rooms' : 'Play vs Computer'}
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => setShowRules(true)}>
               Rules & Moves
             </Button>
@@ -713,7 +755,7 @@ export function FoxPlayPage() {
                   className={cx(styles.segment, playMode === 'bot' && styles.segmentActive)}
                   onClick={() => setPlayMode('bot')}
                 >
-                  Play Bot
+                  Play Computer
                 </button>
                 <button
                   className={cx(styles.segment, playMode === 'pass' && styles.segmentActive)}
