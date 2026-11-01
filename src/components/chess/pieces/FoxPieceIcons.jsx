@@ -12,6 +12,8 @@ const STAUNTON_GROUP_STYLE = {
   strokeMiterlimit: '4',
 }
 
+const FOX_SCALE_TRANSFORM = 'translate(22.5, 27) scale(0.78) translate(-22.5, -27)'
+
 // ---------------------------------------------------------------------------
 // White Red-eared Fox (rf):
 // Sculpted Staunton fox with authentic vulpine anatomy: tall pointed alert ears,
@@ -27,7 +29,7 @@ export function WhiteRedEaredFox({ svgStyle }) {
       height="100%"
       style={svgStyle}
     >
-      <g style={STAUNTON_GROUP_STYLE}>
+      <g style={STAUNTON_GROUP_STYLE} transform={FOX_SCALE_TRANSFORM}>
         {/* Classical Staunton Pedestal Base */}
         <path
           d="M 9,39 L 36,39 C 36,37.8 35,36.8 34,36.5 L 11,36.5 C 10,36.8 9,37.8 9,39 Z"
@@ -164,7 +166,7 @@ export function BlackRedEaredFox({ svgStyle }) {
       height="100%"
       style={svgStyle}
     >
-      <g style={STAUNTON_GROUP_STYLE}>
+      <g style={STAUNTON_GROUP_STYLE} transform={FOX_SCALE_TRANSFORM}>
         {/* Classical Staunton Pedestal Base */}
         <path
           d="M 9,39 L 36,39 C 36,37.8 35,36.8 34,36.5 L 11,36.5 C 10,36.8 9,37.8 9,39 Z"
@@ -333,7 +335,7 @@ export function WhiteNormalFox({ svgStyle }) {
       height="100%"
       style={svgStyle}
     >
-      <g style={STAUNTON_GROUP_STYLE}>
+      <g style={STAUNTON_GROUP_STYLE} transform={FOX_SCALE_TRANSFORM}>
         {/* Classical Staunton Pedestal Base */}
         <path
           d="M 9,39 L 36,39 C 36,37.8 35,36.8 34,36.5 L 11,36.5 C 10,36.8 9,37.8 9,39 Z"
@@ -480,7 +482,7 @@ export function BlackNormalFox({ svgStyle }) {
       height="100%"
       style={svgStyle}
     >
-      <g style={STAUNTON_GROUP_STYLE}>
+      <g style={STAUNTON_GROUP_STYLE} transform={FOX_SCALE_TRANSFORM}>
         {/* Classical Staunton Pedestal Base */}
         <path
           d="M 9,39 L 36,39 C 36,37.8 35,36.8 34,36.5 L 11,36.5 C 10,36.8 9,37.8 9,39 Z"

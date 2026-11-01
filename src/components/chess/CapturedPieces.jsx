@@ -13,8 +13,8 @@ function sortByValue(pieces) {
 }
 
 const INLINE_FOX_STYLE = {
-  width: '1.35em',
-  height: '1.35em',
+  width: '1.05em',
+  height: '1.05em',
   verticalAlign: 'middle',
   display: 'inline-block',
 }

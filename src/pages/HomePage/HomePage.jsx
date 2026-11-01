@@ -15,7 +15,7 @@ const FEATURES = [
     to: ROUTES.play,
   },
   {
-    glyph: <WhiteRedEaredFox svgStyle={{ width: '1em', height: '1em', display: 'block' }} />,
+    glyph: <WhiteRedEaredFox svgStyle={{ width: '0.82em', height: '0.82em', display: 'block' }} />,
     title: 'Fox Chess (10×10)',
     body: 'Experience the expanded battlefield featuring the Red-eared Fox and Normal Fox.',
     to: ROUTES.foxPlay,
