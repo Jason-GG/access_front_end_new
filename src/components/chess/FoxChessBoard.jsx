@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FOX_FILES, FOX_RANKS, parseSquare, toSquare } from '../../services/foxChessEngine'
 import { PieceIcon } from './pieces/FoxPieceIcons'
 import styles from './FoxChessBoard.module.css'
@@ -16,6 +16,11 @@ export function FoxChessBoard({
   const [draggingSquare, setDraggingSquare] = useState(null)
   const [promotionPending, setPromotionPending] = useState(null)
   const currentFen = propFen || (typeof game?.fen === 'function' ? game.fen() : null)
+
+  useEffect(() => {
+    setSelectedSquare(null)
+    setDraggingSquare(null)
+  }, [currentFen])
 
   // Compute displayed rows and columns based on board orientation
   const isWhite = orientation === 'white'

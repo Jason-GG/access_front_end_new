@@ -646,24 +646,50 @@ export function BlackNormalFox({ svgStyle }) {
 }
 
 // Master Piece Renderer mapping piece code (e.g. 'wP', 'wRF', 'bF', etc.) to component
-export function PieceIcon({ pieceCode, svgStyle = {} }) {
-  if (!pieceCode) return null
+export function PieceIcon({ pieceCode, piece, className, svgStyle = {} }) {
+  const resolvedCode = pieceCode || piece
+  if (!resolvedCode) return null
 
-  switch (pieceCode) {
+  let icon = null
+  switch (resolvedCode) {
     case 'wRF':
-      return <WhiteRedEaredFox svgStyle={svgStyle} />
+      icon = <WhiteRedEaredFox svgStyle={svgStyle} />
+      break
     case 'bRF':
-      return <BlackRedEaredFox svgStyle={svgStyle} />
+      icon = <BlackRedEaredFox svgStyle={svgStyle} />
+      break
     case 'wF':
-      return <WhiteNormalFox svgStyle={svgStyle} />
+      icon = <WhiteNormalFox svgStyle={svgStyle} />
+      break
     case 'bF':
-      return <BlackNormalFox svgStyle={svgStyle} />
+      icon = <BlackNormalFox svgStyle={svgStyle} />
+      break
     default: {
-      const StandardComp = defaultPieces[pieceCode]
+      const StandardComp = defaultPieces[resolvedCode]
       if (StandardComp) {
-        return <StandardComp svgStyle={svgStyle} />
+        icon = <StandardComp svgStyle={svgStyle} />
       }
-      return null
+      break
     }
   }
+
+  if (!icon) return null
+
+  if (className) {
+    return (
+      <span
+        className={className}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          lineHeight: 0,
+        }}
+      >
+        {icon}
+      </span>
+    )
+  }
+
+  return icon
 }

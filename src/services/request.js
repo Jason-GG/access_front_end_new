@@ -51,16 +51,90 @@ export class ApiError extends Error {
   }
 }
 
-let isRefreshing = false
-let refreshSubscribers = []
+let activeRefreshPromise = null
 
-function subscribeTokenRefresh(cb) {
-  refreshSubscribers.push(cb)
+function isJwtExpiringSoon(token, bufferSeconds = 30) {
+  if (!token || typeof token !== 'string') return true
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return false
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
+    const payload = JSON.parse(atob(padded))
+    if (typeof payload?.exp !== 'number') return false
+    return Date.now() >= (payload.exp - bufferSeconds) * 1000
+  } catch {
+    return false
+  }
 }
 
-function onRefreshed(token) {
-  refreshSubscribers.forEach((cb) => cb(token))
-  refreshSubscribers = []
+export async function refreshAccessToken() {
+  if (activeRefreshPromise) return activeRefreshPromise
+  const refreshToken = getStoredRefreshToken()
+  if (!refreshToken) {
+    clearStoredTokens()
+    return null
+  }
+  const base = API_BASE_URL.replace(/\/+$/, '')
+  activeRefreshPromise = (async () => {
+    try {
+      const refreshRes = await fetch(`${base}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+      if (!refreshRes.ok) {
+        clearStoredTokens()
+        return null
+      }
+      const session = await refreshRes.json()
+      storeTokens(session.accessToken, session.refreshToken)
+      if (session.user) {
+        let existingUser = null
+        try {
+          const rawExisting = localStorage.getItem(STORAGE_KEYS.session)
+          existingUser = rawExisting ? JSON.parse(rawExisting) : null
+        } catch {
+          existingUser = null
+        }
+        const mergedUser = {
+          ...(existingUser || {}),
+          ...session.user,
+        }
+        const resolvedUsername =
+          mergedUser.username ||
+          mergedUser.handle ||
+          (mergedUser.email ? String(mergedUser.email).split('@')[0] : '') ||
+          ''
+        mergedUser.username = resolvedUsername
+        mergedUser.handle = resolvedUsername || 'Player'
+        localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(mergedUser))
+      }
+      notifySessionUpdated()
+      return session.accessToken || null
+    } catch {
+      clearStoredTokens()
+      return null
+    } finally {
+      activeRefreshPromise = null
+    }
+  })()
+  return activeRefreshPromise
+}
+
+export async function ensureFreshAccessToken() {
+  const token = getStoredAccessToken()
+  if (token && !isJwtExpiringSoon(token, 30)) {
+    return token
+  }
+  if (getStoredRefreshToken()) {
+    return refreshAccessToken()
+  }
+  if (token && isJwtExpiringSoon(token, 0)) {
+    clearStoredTokens()
+    return null
+  }
+  return token
 }
 
 export function getStoredAccessToken() {
@@ -179,16 +253,31 @@ export async function request(endpoint, options = {}) {
     resolvedHeaders['Content-Type'] = 'application/json'
   }
 
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  const base = API_BASE_URL.replace(/\/+$/, '')
+  const url = `${base}${cleanEndpoint}`
+
+  // Handle 401 Token Refresh (include /auth/me, exclude unauthenticated auth endpoints)
+  const canRefreshEndpoint =
+    !skipAuth &&
+    cleanEndpoint !== '/auth/refresh' &&
+    cleanEndpoint !== '/auth/login' &&
+    cleanEndpoint !== '/auth/register' &&
+    cleanEndpoint !== '/auth/send-verification-code' &&
+    cleanEndpoint !== '/auth/send-code' &&
+    cleanEndpoint !== '/auth/verify-email' &&
+    cleanEndpoint !== '/auth/resend-verification'
+
   if (!skipAuth) {
-    const token = customToken || getStoredAccessToken()
+    let token = customToken || getStoredAccessToken()
+    if (!customToken && canRefreshEndpoint && token && isJwtExpiringSoon(token, 15)) {
+      const refreshed = await ensureFreshAccessToken()
+      if (refreshed) token = refreshed
+    }
     if (token) {
       resolvedHeaders.Authorization = `Bearer ${token}`
     }
   }
-
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  const base = API_BASE_URL.replace(/\/+$/, '')
-  const url = `${base}${cleanEndpoint}`
 
   const fetchConfig = {
     method,
@@ -207,84 +296,16 @@ export async function request(endpoint, options = {}) {
     )
   }
 
-  // Handle 401 Token Refresh (include /auth/me, exclude unauthenticated auth endpoints)
-  const canRefreshEndpoint =
-    !skipAuth &&
-    cleanEndpoint !== '/auth/refresh' &&
-    cleanEndpoint !== '/auth/login' &&
-    cleanEndpoint !== '/auth/register' &&
-    cleanEndpoint !== '/auth/send-verification-code' &&
-    cleanEndpoint !== '/auth/send-code' &&
-    cleanEndpoint !== '/auth/verify-email' &&
-    cleanEndpoint !== '/auth/resend-verification'
-
   if (response.status === 401 && retryOnAuthFailure && canRefreshEndpoint) {
-    const refreshToken = getStoredRefreshToken()
-    if (refreshToken) {
-      if (!isRefreshing) {
-        isRefreshing = true
-        try {
-          const refreshRes = await fetch(`${base}/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-            body: JSON.stringify({ refreshToken }),
-          })
-
-          if (refreshRes.ok) {
-            const session = await refreshRes.json()
-            storeTokens(session.accessToken, session.refreshToken)
-            if (session.user) {
-              let existingUser = null
-              try {
-                const rawExisting = localStorage.getItem(STORAGE_KEYS.session)
-                existingUser = rawExisting ? JSON.parse(rawExisting) : null
-              } catch {
-                existingUser = null
-              }
-              const mergedUser = {
-                ...(existingUser || {}),
-                ...session.user,
-              }
-              const resolvedUsername =
-                mergedUser.username ||
-                mergedUser.handle ||
-                (mergedUser.email ? String(mergedUser.email).split('@')[0] : '') ||
-                ''
-              mergedUser.username = resolvedUsername
-              mergedUser.handle = resolvedUsername || 'Player'
-              localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(mergedUser))
-            }
-            notifySessionUpdated()
-            onRefreshed(session.accessToken)
-            isRefreshing = false
-          } else {
-            clearStoredTokens()
-            isRefreshing = false
-            onRefreshed(null)
-          }
-        } catch {
-          clearStoredTokens()
-          isRefreshing = false
-          onRefreshed(null)
-        }
-      }
-
-      return new Promise((resolve, reject) => {
-        subscribeTokenRefresh((newToken) => {
-          if (newToken) {
-            resolve(
-              request(endpoint, {
-                ...options,
-                token: newToken,
-                retryOnAuthFailure: false,
-              }),
-            )
-          } else {
-            reject(new ApiError('Session expired. Please sign in again.', 401))
-          }
-        })
+    const newToken = await refreshAccessToken()
+    if (newToken) {
+      return request(endpoint, {
+        ...options,
+        token: newToken,
+        retryOnAuthFailure: false,
       })
     }
+    throw new ApiError('Session expired. Please sign in again.', 401)
   }
 
   let data = null

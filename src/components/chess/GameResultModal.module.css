@@ -1,0 +1,447 @@
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes victoryEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.72) translateY(28px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.04) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes defeatEntrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(-20px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateX(-8px);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+  70% {
+    transform: translateX(-5px);
+  }
+  85% {
+    transform: translateX(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes emblemFloat {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.06);
+  }
+}
+
+@keyframes emblemDefeatTilt {
+  0% {
+    transform: rotate(0deg) scale(0.85);
+  }
+  50% {
+    transform: rotate(-10deg) scale(1.03);
+  }
+  100% {
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
+@keyframes ringPulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(1.38);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.38);
+    opacity: 0;
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-24px) rotate(0deg);
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(360px) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+@keyframes headlineShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 12, 16, 0.76);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 80;
+  animation: overlayFadeIn 0.25s ease-out;
+}
+
+.dialog {
+  position: relative;
+  overflow: hidden;
+  background: var(--canvas, #ffffff);
+  border: 2px solid var(--hairline, #222);
+  width: 100%;
+  max-width: 440px;
+  padding: 36px 28px 28px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.victory {
+  border-color: #d97706;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 55%);
+  animation: victoryEntrance 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.defeat {
+  border-color: #991b1b;
+  background: linear-gradient(180deg, #fef2f2 0%, #ffffff 55%);
+  animation: defeatEntrance 0.55s ease-out;
+}
+
+.draw {
+  border-color: #475569;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 55%);
+  animation: victoryEntrance 0.45s ease-out;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--mute, #666);
+  cursor: pointer;
+  z-index: 2;
+  padding: 4px 8px;
+}
+
+.closeBtn:hover {
+  color: var(--ink, #111);
+}
+
+.confettiContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 16px;
+  border-radius: 2px;
+  animation-name: confettiFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.confettiVar0 {
+  background: #f59e0b;
+}
+
+.confettiVar1 {
+  background: #10b981;
+}
+
+.confettiVar2 {
+  background: #ec4899;
+}
+
+.defeatPulse {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 0%, rgba(220, 38, 38, 0.14), transparent 70%);
+}
+
+.emblemWrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emblemRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: ringPulse 1.8s ease-out infinite;
+}
+
+.victory .emblemRing {
+  border: 3px solid rgba(217, 119, 6, 0.55);
+}
+
+.defeat .emblemRing {
+  border: 3px solid rgba(185, 28, 28, 0.45);
+}
+
+.draw .emblemRing {
+  border: 3px solid rgba(71, 85, 105, 0.45);
+}
+
+.emblemIcon {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.victory .emblemIcon {
+  background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+  color: #78350f;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+  animation: emblemFloat 2.2s ease-in-out infinite;
+}
+
+.defeat .emblemIcon {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #7f1d1d;
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.25);
+  animation: emblemDefeatTilt 0.7s ease-out forwards;
+}
+
+.draw .emblemIcon {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  color: #1e293b;
+  box-shadow: 0 8px 20px rgba(71, 85, 105, 0.22);
+}
+
+.svgIcon {
+  width: 42px;
+  height: 42px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.victory .badge {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.defeat .badge {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.draw .badge {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.headline {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.victory .headline {
+  background: linear-gradient(90deg, #b45309, #d97706, #f59e0b, #b45309);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: headlineShine 2.5s linear infinite;
+}
+
+.defeat .headline {
+  color: #991b1b;
+}
+
+.draw .headline {
+  color: #334155;
+}
+
+.reason {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink, #111);
+}
+
+.subheadline {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--mute, #666);
+}
+
+.scoreBanner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.scoreGain {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.scoreLoss {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.scoreNeutral {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.scoreDeltaText {
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.scoreTotalText {
+  font-weight: 600;
+  opacity: 0.9;
+  padding-left: 8px;
+  border-left: 1px solid currentColor;
+}
+
+.zeroScoreNotice {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.matchup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.035);
+  border: 1px solid var(--hairline-soft, #e5e7eb);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.playerTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink, #111);
+}
+
+.dotWhite,
+.dotBlack {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dotWhite {
+  background: #ffffff;
+  border: 1.5px solid #111;
+}
+
+.dotBlack {
+  background: #111111;
+  border: 1.5px solid #111;
+}
+
+.vs {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--mute, #777);
+  letter-spacing: 0.08em;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

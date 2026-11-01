@@ -235,6 +235,49 @@
   padding: 2px 8px;
 }
 
+.playerScore {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+}
+
+.modalBody {
+  color: var(--mute);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.leaveWarnBox {
+  background: rgba(211, 47, 47, 0.06);
+  border: 1px solid rgba(211, 47, 47, 0.3);
+  border-left: 4px solid #d32f2f;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.leaveWarnTitle {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #b71c1c;
+  margin: 0 0 8px;
+}
+
+.leaveWarnTips {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
+  display: grid;
+  gap: 6px;
+}
+
 .modalActions {
   display: flex;
   gap: 8px;

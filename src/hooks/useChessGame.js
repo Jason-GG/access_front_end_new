@@ -271,7 +271,10 @@ export function useChessGame({
     makeMove: handleMove,
     undo,
     reset,
-    canUndo: history.length > 0,
+    canUndo:
+      playMode === 'bot'
+        ? history.some((m) => m.color === orientation[0])
+        : history.length > 0,
     isPlayerTurn: playMode === 'bot' ? turn === orientation[0] : true,
   }
 }

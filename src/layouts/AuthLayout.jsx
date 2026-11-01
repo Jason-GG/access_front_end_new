@@ -7,8 +7,8 @@ export function AuthLayout() {
   return (
     <div className={styles.page}>
       <Link to={ROUTES.home} className={styles.brand}>
-        <img src={knightMark} className={styles.mark} alt="Access Chess knight" />
-        <span className={styles.brandName}>Access Chess</span>
+        <img src={knightMark} className={styles.mark} alt="Achess Red-eared Fox" />
+        <span className={styles.brandName}>Achess</span>
       </Link>
       <main className={styles.main}>
         <Outlet />

@@ -34,6 +34,32 @@ function decodeUserFromJwt(token) {
   }
 }
 
+const GUEST_SCORE_STORAGE_KEY = 'achess_guest_score'
+export const DEFAULT_USER_SCORE = 500
+export const WIN_SCORE_DELTA = 5
+export const LOSS_SCORE_DELTA = 5
+
+export function getGuestScore() {
+  try {
+    const raw = localStorage.getItem(GUEST_SCORE_STORAGE_KEY)
+    if (raw === null || raw === '') return DEFAULT_USER_SCORE
+    const num = Number(raw)
+    return Number.isFinite(num) && num >= 0 ? Math.floor(num) : DEFAULT_USER_SCORE
+  } catch {
+    return DEFAULT_USER_SCORE
+  }
+}
+
+export function setGuestScore(score) {
+  const clamped = Math.max(0, Math.floor(Number(score) || 0))
+  try {
+    localStorage.setItem(GUEST_SCORE_STORAGE_KEY, String(clamped))
+  } catch {
+    // ignore storage errors
+  }
+  return clamped
+}
+
 function normalizeUser(rawUser, extra = {}) {
   const unwrapped =
     rawUser && typeof rawUser === 'object' && rawUser.user && typeof rawUser.user === 'object'
@@ -59,12 +85,24 @@ function normalizeUser(rawUser, extra = {}) {
 
   if (!id && !username && !email) return null
 
+  const rawScore =
+    unwrapped?.score ??
+    mergedSource.score ??
+    extra?.score ??
+    DEFAULT_USER_SCORE
+  const parsedScore = Number(rawScore)
+  const score =
+    Number.isFinite(parsedScore) && parsedScore >= 0
+      ? Math.floor(parsedScore)
+      : DEFAULT_USER_SCORE
+
   return {
     ...mergedSource,
     ...(id ? { id } : {}),
     email,
     username,
     handle: username || (email ? handleFromEmail(email) : 'Player'),
+    score,
   }
 }
 
@@ -101,6 +139,33 @@ function writeSession(user) {
 
 export function getCurrentUser() {
   return readSession()
+}
+
+export function updateStoredUserScore(newScore) {
+  const clamped = Math.max(0, Math.floor(Number(newScore) || 0))
+  const current = readSession()
+  if (current) {
+    const updated = { ...current, score: clamped }
+    writeSession(updated)
+    return updated
+  }
+  setGuestScore(clamped)
+  return null
+}
+
+export function adjustStoredUserScore(delta) {
+  const d = Number(delta) || 0
+  const current = readSession()
+  if (current) {
+    const base = typeof current.score === 'number' ? current.score : DEFAULT_USER_SCORE
+    const nextScore = Math.max(0, base + d)
+    const updated = { ...current, score: nextScore }
+    writeSession(updated)
+    return { user: updated, score: nextScore, previousScore: base, delta: nextScore - base }
+  }
+  const baseGuest = getGuestScore()
+  const nextGuest = setGuestScore(Math.max(0, baseGuest + d))
+  return { user: null, score: nextGuest, previousScore: baseGuest, delta: nextGuest - baseGuest }
 }
 
 /**
@@ -211,6 +276,32 @@ export async function verifyEmail(token) {
  */
 export async function resendVerification(email) {
   return authApi.resendVerificationApi({ email })
+}
+
+/**
+ * Fetch full user profile including recent games and dashboard stats
+ */
+export async function fetchFullProfile() {
+  return authApi.getFullProfileApi()
+}
+
+/**
+ * Update own profile (username, email, password) and refresh stored session
+ */
+export async function updateProfile(payload) {
+  const response = await authApi.updateUserProfileApi(payload)
+  if (response?.accessToken) {
+    storeTokens(response.accessToken)
+  }
+  const existingSession = readRawSession() || {}
+  const updatedUser = normalizeUser(response?.user || response, existingSession)
+  if (updatedUser) {
+    writeSession(updatedUser)
+  }
+  return {
+    message: response?.message || 'Profile updated successfully.',
+    user: updatedUser,
+  }
 }
 
 /**

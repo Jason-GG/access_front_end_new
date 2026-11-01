@@ -91,6 +91,21 @@ export async function getUserProfileApi() {
 }
 
 /**
+ * Get full profile including recent games, dashboard, and insights
+ */
+export async function getFullProfileApi() {
+  return httpClient.get('/users/profile')
+}
+
+/**
+ * Update own user profile (username, email, password)
+ * @param {{ username?: string, email?: string, currentPassword?: string, newPassword?: string }} payload
+ */
+export async function updateUserProfileApi(payload) {
+  return httpClient.patch('/users/me', payload)
+}
+
+/**
  * Rotate current session tokens
  * @param {{ refreshToken: string }} param0
  * @returns {Promise<{ user: object, accessToken: string, refreshToken: string }>}

@@ -45,6 +45,30 @@ export function isDrawResult(result) {
   return DRAW_RESULTS.has(result)
 }
 
+export function winnerFromResult(result) {
+  if (!result || typeof result !== 'string') return null
+  const r = result.trim().toLowerCase()
+  if (
+    r === 'white_checkmate' ||
+    r === 'black_resigned' ||
+    r === 'black_timeout' ||
+    r === 'white_win' ||
+    r === '1-0'
+  ) {
+    return 'white'
+  }
+  if (
+    r === 'black_checkmate' ||
+    r === 'white_resigned' ||
+    r === 'white_timeout' ||
+    r === 'black_win' ||
+    r === '0-1'
+  ) {
+    return 'black'
+  }
+  return null
+}
+
 export function getCapturedFromFen(fen) {
   const captured = { white: [], black: [] }
   if (!fen) return captured
@@ -136,7 +160,11 @@ export function makeMove(game, from, to, promotion = 'q') {
 export function getGameStatus(game) {
   if (game.isCheckmate()) {
     const winner = game.turn() === 'w' ? 'Black' : 'White'
-    return { kind: 'checkmate', label: `Checkmate — ${winner} wins` }
+    return {
+      kind: 'checkmate',
+      winner: winner.toLowerCase(),
+      label: `Checkmate — ${winner} wins`,
+    }
   }
   if (game.isStalemate()) {
     return { kind: 'draw', label: 'Draw by stalemate' }

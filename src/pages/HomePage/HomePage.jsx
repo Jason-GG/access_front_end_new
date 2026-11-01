@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { WhiteRedEaredFox } from '../../components/chess/pieces/FoxPieceIcons'
 import { Button } from '../../components/common/Button'
 import { NewsRollingBand } from '../../components/news/NewsRollingBand'
 import { useFetchNews } from '../../hooks/useFetchNews'
@@ -14,7 +15,7 @@ const FEATURES = [
     to: ROUTES.play,
   },
   {
-    glyph: '🦊',
+    glyph: <WhiteRedEaredFox svgStyle={{ width: '1em', height: '1em', display: 'block' }} />,
     title: 'Fox Chess (10×10)',
     body: 'Experience the expanded battlefield featuring the Red-eared Fox and Normal Fox.',
     to: ROUTES.foxPlay,
@@ -43,7 +44,7 @@ export function HomePage() {
 
       <section className={styles.hero}>
         <div className="container">
-          <p className={styles.heroEyebrow}>EST. MMXXVI · THE ACCESS CHESS CLUB</p>
+          <p className={styles.heroEyebrow}>EST. MMXXVI · THE ACHESS CLUB</p>
           <h1 className={`display ${styles.heroTitle}`}>
             Play the <span className={styles.heroAccent}>game.</span>
           </h1>

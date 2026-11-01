@@ -1,9 +1,42 @@
 import { PIECE_GLYPHS, PIECE_VALUES } from '../../utils/constants'
 import { cx } from '../../utils/helpers'
 import styles from './CapturedPieces.module.css'
+import {
+  BlackNormalFox,
+  BlackRedEaredFox,
+  WhiteNormalFox,
+  WhiteRedEaredFox,
+} from './pieces/FoxPieceIcons'
 
 function sortByValue(pieces) {
   return [...pieces].sort((a, b) => PIECE_VALUES[b] - PIECE_VALUES[a])
+}
+
+const INLINE_FOX_STYLE = {
+  width: '1.35em',
+  height: '1.35em',
+  verticalAlign: 'middle',
+  display: 'inline-block',
+}
+
+function renderCapturedGlyph(piece, tone) {
+  const lower = String(piece || '').toLowerCase()
+  const isBlackPiece = tone !== 'black'
+  if (lower === 'rf') {
+    return isBlackPiece ? (
+      <BlackRedEaredFox svgStyle={INLINE_FOX_STYLE} />
+    ) : (
+      <WhiteRedEaredFox svgStyle={INLINE_FOX_STYLE} />
+    )
+  }
+  if (lower === 'f') {
+    return isBlackPiece ? (
+      <BlackNormalFox svgStyle={INLINE_FOX_STYLE} />
+    ) : (
+      <WhiteNormalFox svgStyle={INLINE_FOX_STYLE} />
+    )
+  }
+  return PIECE_GLYPHS[piece]
 }
 
 function CapturedRow({ label, glyphs, tone }) {
@@ -16,7 +49,7 @@ function CapturedRow({ label, glyphs, tone }) {
           ? '—'
           : sorted.map((piece, index) => (
               <span key={`${piece}-${index}`} aria-label={`${piece}`}>
-                {PIECE_GLYPHS[piece]}
+                {renderCapturedGlyph(piece, tone)}
               </span>
             ))}
       </span>

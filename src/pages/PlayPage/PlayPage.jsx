@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import * as playApi from '../../api/playApi'
 import { CapturedPieces } from '../../components/chess/CapturedPieces'
 import { ChessBoard } from '../../components/chess/ChessBoard'
+import { GameResultModal } from '../../components/chess/GameResultModal'
 import { GameTimer } from '../../components/chess/GameTimer'
 import { MoveHistory } from '../../components/chess/MoveHistory'
 import { RoomChat } from '../../components/chess/RoomChat'
@@ -9,8 +11,8 @@ import { RoomLobby } from '../../components/chess/RoomLobby'
 import { Button } from '../../components/common/Button'
 import { Loader } from '../../components/common/Loader'
 import { Modal } from '../../components/common/Modal'
-import { ROUTES, STORAGE_KEYS } from '../../utils/constants'
-import { cx } from '../../utils/helpers'
+import { ROUTES, STORAGE_KEYS, formatTimeControlSummary } from '../../utils/constants'
+import { buildRoomInviteUrl, copyToClipboard, cx } from '../../utils/helpers'
 import { useAuth } from '../../hooks/useAuth'
 import { useChessGame } from '../../hooks/useChessGame'
 import { usePlayRoom } from '../../hooks/usePlayRoom'
@@ -23,12 +25,15 @@ function sameUser(a, b) {
   return a != null && b != null && String(a) === String(b)
 }
 
-function PlayerRow({ label, name, you, active }) {
+function PlayerRow({ label, name, you, active, score }) {
   return (
     <div className={cx(styles.player, active && styles.playerActive)}>
       <span className={styles.playerLabel}>{label}</span>
       <span className={styles.playerName}>
         {name || 'Waiting…'}
+        {typeof score === 'number' && !Number.isNaN(score) ? (
+          <span className={styles.playerScore}>★ {score} pts</span>
+        ) : null}
         {you ? <span className={styles.youTag}>you</span> : null}
       </span>
     </div>
@@ -36,7 +41,7 @@ function PlayerRow({ label, name, you, active }) {
 }
 
 function RoomView({ roomId, onLeave }) {
-  const { user } = useAuth()
+  const { user, score, refreshUser, applyScoreChange } = useAuth()
   const game = usePlayRoom({
     roomId,
     currentUserId: user?.id,
@@ -44,40 +49,158 @@ function RoomView({ roomId, onLeave }) {
     currentUsername: user?.username || user?.handle,
   })
   const [confirmResign, setConfirmResign] = useState(false)
+  const [confirmLeaveAction, setConfirmLeaveAction] = useState(null)
   const [copied, setCopied] = useState(false)
   const [justStarted, setJustStarted] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [lastScoreDelta, setLastScoreDelta] = useState(null)
+  const settledRoomRef = useRef(false)
+  const leftExplicitlyRef = useRef(false)
   const prevStatusRef = useRef(game.gameStatus)
 
-  const handleDeleteRoom = useCallback(async () => {
+  const waiting = game.gameStatus === 'waiting' || game.status?.kind === 'waiting'
+  const gameOver =
+    game.gameStatus === 'finished' ||
+    game.status?.kind === 'finished' ||
+    game.status?.kind === 'draw' ||
+    game.status?.kind === 'checkmate'
+  const isGameUnfinished = !gameOver && !game.loading && !game.roomDeleted
+  const hasActiveOpponentOrMoves =
+    !waiting ||
+    (Array.isArray(game.history) && game.history.length > 0) ||
+    Boolean(game.whitePlayer && game.blackPlayer)
+
+  const executeDeleteRoom = useCallback(async () => {
     if (deleting) return
+    leftExplicitlyRef.current = true
     setDeleting(true)
     const deleted = await game.deleteRoom()
     if (deleted) {
+      refreshUser()
       onLeave()
     } else {
+      leftExplicitlyRef.current = false
       setDeleting(false)
     }
-  }, [deleting, game, onLeave])
+  }, [deleting, game, onLeave, refreshUser])
 
-  const handleLeaveRoom = useCallback(async () => {
-    if (leaving || deleting) return
-    setLeaving(true)
-    try {
-      if (!game.roomDeleted && typeof game.leaveRoom === 'function') {
-        await game.leaveRoom()
+  const executeLeaveRoom = useCallback(
+    async (targetHref = null) => {
+      if (leaving || deleting) return
+      leftExplicitlyRef.current = true
+      setLeaving(true)
+      try {
+        if (!game.roomDeleted && typeof game.leaveRoom === 'function') {
+          await game.leaveRoom()
+        }
+      } finally {
+        refreshUser()
+        if (typeof targetHref === 'string' && targetHref) {
+          const hashIdx = targetHref.indexOf('#')
+          if (hashIdx >= 0) {
+            window.location.hash = targetHref.slice(hashIdx)
+          } else {
+            onLeave()
+          }
+        } else {
+          onLeave()
+        }
       }
-    } finally {
-      onLeave()
+    },
+    [leaving, deleting, game, onLeave, refreshUser],
+  )
+
+  const handleDeleteRoom = useCallback(() => {
+    if (deleting || leaving) return
+    if (isGameUnfinished) {
+      setConfirmLeaveAction({ type: 'delete', href: null })
+      return
     }
-  }, [leaving, deleting, game, onLeave])
+    executeDeleteRoom()
+  }, [deleting, leaving, isGameUnfinished, executeDeleteRoom])
+
+  const handleLeaveRoom = useCallback(() => {
+    if (leaving || deleting) return
+    if (isGameUnfinished) {
+      setConfirmLeaveAction({ type: 'leave', href: null })
+      return
+    }
+    executeLeaveRoom()
+  }, [leaving, deleting, isGameUnfinished, executeLeaveRoom])
+
+  const handleConfirmLeaveAction = useCallback(async () => {
+    const action = confirmLeaveAction
+    setConfirmLeaveAction(null)
+    if (!action) return
+    if (action.type === 'delete') {
+      await executeDeleteRoom()
+    } else {
+      await executeLeaveRoom(action.href)
+    }
+  }, [confirmLeaveAction, executeDeleteRoom, executeLeaveRoom])
+
+  useEffect(() => {
+    if (gameOver && confirmLeaveAction) {
+      setConfirmLeaveAction(null)
+    }
+  }, [gameOver, confirmLeaveAction])
+
+  useEffect(() => {
+    if (!isGameUnfinished) return undefined
+    const handleDocumentClick = (event) => {
+      if (leftExplicitlyRef.current) return
+      const anchor = event.target?.closest?.('a[href]')
+      if (!anchor) return
+      const rawHref = anchor.getAttribute('href') || ''
+      if (!rawHref || rawHref.startsWith('javascript:') || rawHref === '#') return
+      if (roomId && rawHref.includes(roomId)) return
+      event.preventDefault()
+      event.stopPropagation()
+      setConfirmLeaveAction({ type: 'navigate', href: rawHref })
+    }
+    document.addEventListener('click', handleDocumentClick, true)
+    return () => document.removeEventListener('click', handleDocumentClick, true)
+  }, [isGameUnfinished, roomId])
+
+  useEffect(() => {
+    if (!isGameUnfinished || !hasActiveOpponentOrMoves) return undefined
+    const handleBeforeUnload = (event) => {
+      if (leftExplicitlyRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isGameUnfinished, hasActiveOpponentOrMoves])
 
   useEffect(() => {
     if (game.roomDeleted) {
+      leftExplicitlyRef.current = true
+      refreshUser()
       onLeave()
     }
-  }, [game.roomDeleted, onLeave])
+  }, [game.roomDeleted, onLeave, refreshUser])
+
+  useEffect(() => {
+    return () => {
+      if (!leftExplicitlyRef.current && roomId && !window.location.hash.includes(roomId)) {
+        saveTokenScopedState(`${STORAGE_KEYS.roomStatePrefix}chess:${roomId}`, null)
+        playApi
+          .leaveRoom(roomId)
+          .then(() => refreshUser())
+          .catch(() => {})
+      }
+    }
+  }, [roomId, refreshUser])
+
+  useEffect(() => {
+    if (game.gameStatus === 'waiting') {
+      settledRoomRef.current = false
+      setLastScoreDelta(null)
+      refreshUser()
+    }
+  }, [game.gameId, game.gameStatus, refreshUser])
 
   useEffect(() => {
     if (prevStatusRef.current === 'waiting' && game.gameStatus === 'active') {
@@ -88,12 +211,39 @@ function RoomView({ roomId, onLeave }) {
     prevStatusRef.current = game.gameStatus
   }, [game.gameStatus])
 
-  const waiting = game.gameStatus === 'waiting' || game.status?.kind === 'waiting'
-  const gameOver =
-    game.gameStatus === 'finished' ||
-    game.status?.kind === 'finished' ||
-    game.status?.kind === 'draw' ||
-    game.status?.kind === 'checkmate'
+  useEffect(() => {
+    if (!gameOver || game.result === 'aborted' || !game.isPlayer || settledRoomRef.current) {
+      return
+    }
+    settledRoomRef.current = true
+    const rawWinner = game.status?.winner
+    const winnerNorm =
+      rawWinner === 'white' || rawWinner === 'w'
+        ? 'white'
+        : rawWinner === 'black' || rawWinner === 'b'
+          ? 'black'
+          : null
+    const myColor =
+      game.mySeat === 'black' || game.mySeat === 'b'
+        ? 'black'
+        : game.mySeat === 'white' || game.mySeat === 'w'
+          ? 'white'
+          : null
+    const delta = winnerNorm && myColor ? (winnerNorm === myColor ? 5 : -5) : 0
+    setLastScoreDelta(delta)
+    if (delta !== 0) {
+      applyScoreChange(delta)
+    }
+    refreshUser()
+  }, [
+    gameOver,
+    game.result,
+    game.isPlayer,
+    game.status?.winner,
+    game.mySeat,
+    applyScoreChange,
+    refreshUser,
+  ])
 
   const drawFromOpponent = Boolean(game.drawOfferBy) && !sameUser(game.drawOfferBy, user?.id)
   const takebackFromOpponent = Boolean(game.takeback) && !sameUser(game.takeback?.by, user?.id)
@@ -115,13 +265,12 @@ function RoomView({ roomId, onLeave }) {
   }
 
   async function copyInvite() {
-    const base = `${window.location.origin}${window.location.pathname}`.replace(/\/+$/, '')
-    const link = `${base}/#/play/${roomId}`
-    try {
-      await navigator.clipboard.writeText(link)
+    const link = buildRoomInviteUrl(`/play/${roomId}`)
+    const ok = await copyToClipboard(link)
+    if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
+    } else {
       setCopied(false)
     }
   }
@@ -155,31 +304,15 @@ function RoomView({ roomId, onLeave }) {
       <div className="container">
         <header className={styles.header}>
           <div>
-            <p className="eyebrow">Online 8×8 room</p>
+            <p className="eyebrow">
+              Online 8×8 room · ⏱ {formatTimeControlSummary(game.timeControl)}
+            </p>
             <h1 className={styles.title}>
               {game.whitePlayer?.username || 'White'} vs {game.blackPlayer?.username || 'Black'}
             </h1>
           </div>
           <div className={styles.headerActions}>
             <span className={cx(styles.statusLine, 'notation')}>{statusText}</span>
-            {game.canDeleteRoom && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDeleteRoom}
-                disabled={deleting || leaving}
-              >
-                {deleting ? 'Deleting…' : 'Delete room'}
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLeaveRoom}
-              disabled={leaving || deleting}
-            >
-              {leaving ? 'Leaving…' : 'Leave'}
-            </Button>
           </div>
         </header>
 
@@ -276,11 +409,6 @@ function RoomView({ roomId, onLeave }) {
                   </Button>
                 </>
               )}
-              {waiting && game.isPlayer && (
-                <Button variant="secondary" size="sm" onClick={game.abort}>
-                  Abort game
-                </Button>
-              )}
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
@@ -333,12 +461,14 @@ function RoomView({ roomId, onLeave }) {
                 name={game.whitePlayer?.username}
                 you={game.mySeat === 'white'}
                 active={game.gameStatus === 'active' && game.turn === 'w'}
+                score={game.mySeat === 'white' ? score : game.whitePlayer?.score}
               />
               <PlayerRow
                 label="Black"
                 name={game.blackPlayer?.username}
                 you={game.mySeat === 'black'}
                 active={game.gameStatus === 'active' && game.turn === 'b'}
+                score={game.mySeat === 'black' ? score : game.blackPlayer?.score}
               />
             </div>
 
@@ -371,19 +501,93 @@ function RoomView({ roomId, onLeave }) {
         </div>
       </Modal>
 
-      <Modal open={gameOver} title="Game over" onClose={handleLeaveRoom}>
-        <p className={styles.modalResult}>{game.status?.label || 'Game over'}</p>
-        <p className={styles.modalBody}>The result is saved to your history.</p>
-        <Button size="lg" className={styles.modalButton} onClick={handleLeaveRoom} disabled={leaving}>
-          Back to lobby
-        </Button>
+      <Modal
+        open={Boolean(confirmLeaveAction)}
+        title={
+          confirmLeaveAction?.type === 'delete'
+            ? 'Delete room before game finishes?'
+            : 'Leave unfinished game?'
+        }
+        onClose={() => {
+          if (!leaving && !deleting) setConfirmLeaveAction(null)
+        }}
+      >
+        <p className={styles.modalBody}>
+          This chess game is not finished yet. Please read these tips before leaving:
+        </p>
+        <div className={styles.leaveWarnBox}>
+          <p className={styles.leaveWarnTitle}>Important Tips</p>
+          <ul className={styles.leaveWarnTips}>
+            {hasActiveOpponentOrMoves ? (
+              <>
+                <li>
+                  <strong>Forfeit &amp; Score Penalty:</strong> Leaving an unfinished game counts as
+                  a loss and deducts <strong>5 score points (-5 pts)</strong> from your record
+                  (your opponent gains +5 pts).
+                </li>
+                <li>
+                  <strong>Game Resets from Beginning:</strong> If you or another player return to
+                  this room later, the chess game will <strong>start over from the beginning</strong>.
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <strong>Game Not Finished:</strong> You are currently waiting for an opponent to
+                  join this room.
+                </li>
+                <li>
+                  <strong>Score &amp; Reset Rule:</strong> Once an opponent joins, leaving before
+                  the game finishes will cost <strong>-5 score points</strong> and reset the game
+                  from the beginning.
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+        <div className={styles.modalActions}>
+          <Button
+            variant="secondary"
+            onClick={() => setConfirmLeaveAction(null)}
+            disabled={leaving || deleting}
+          >
+            Stay in room
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleConfirmLeaveAction}
+            disabled={leaving || deleting}
+          >
+            {confirmLeaveAction?.type === 'delete'
+              ? deleting
+                ? 'Deleting…'
+                : 'Delete room anyway'
+              : leaving
+                ? 'Leaving…'
+                : 'Leave room anyway'}
+          </Button>
+        </div>
       </Modal>
+
+      <GameResultModal
+        open={gameOver && game.result !== 'aborted'}
+        winner={game.status?.winner}
+        mySeat={game.mySeat}
+        mode="online"
+        statusLabel={game.status?.label || 'Game over'}
+        whiteName={game.whitePlayer?.username || 'White'}
+        blackName={game.blackPlayer?.username || 'Black'}
+        scoreDelta={lastScoreDelta}
+        currentScore={game.isPlayer ? score : null}
+        primaryActionLabel="Back to lobby"
+        onPrimaryAction={() => executeLeaveRoom()}
+      />
     </section>
   )
 }
 
 function ChessPracticeView({ playMode, setPlayMode }) {
-  const { user } = useAuth()
+  const { user, score, applyScoreChange } = useAuth()
   const playerDisplayName = user?.username || user?.handle || 'You'
   const [orientation, setOrientation] = useState(
     () => loadTokenScopedState(STORAGE_KEYS.chessPracticeState)?.orientation || 'white',
@@ -406,6 +610,44 @@ function ChessPracticeView({ playMode, setPlayMode }) {
     reset,
     canUndo,
   } = useChessGame({ playMode, orientation, difficulty })
+  const [botScoreDelta, setBotScoreDelta] = useState(null)
+  const settledBotGameRef = useRef(null)
+
+  useEffect(() => {
+    if (playMode !== 'bot' || !isGameOver) {
+      setBotScoreDelta(null)
+      return
+    }
+    const gameKey = `${resetKey}-${history.length}`
+    if (settledBotGameRef.current === gameKey) return
+    settledBotGameRef.current = gameKey
+
+    const rawWinner = status?.winner
+    const winnerNorm =
+      rawWinner === 'white' || rawWinner === 'w'
+        ? 'white'
+        : rawWinner === 'black' || rawWinner === 'b'
+          ? 'black'
+          : null
+    const myColor = orientation === 'black' ? 'black' : 'white'
+    const outcome = winnerNorm ? (winnerNorm === myColor ? 'win' : 'loss') : 'draw'
+    const delta = outcome === 'win' ? 5 : outcome === 'loss' ? -5 : 0
+
+    setBotScoreDelta(delta)
+    if (delta !== 0) {
+      applyScoreChange(delta)
+    }
+    if (user) {
+      playApi
+        .recordBotResult({ outcome, boardType: 'chess' })
+        .then((res) => {
+          if (typeof res?.score === 'number') {
+            applyScoreChange({ newScore: res.score })
+          }
+        })
+        .catch(() => {})
+    }
+  }, [playMode, isGameOver, resetKey, history.length, status?.winner, orientation, user, applyScoreChange])
 
   const difficultyLabel =
     difficulty === 'easy' ? 'Easy' : difficulty === 'hard' ? 'Hard' : 'Medium'
@@ -546,6 +788,7 @@ function ChessPracticeView({ playMode, setPlayMode }) {
                   name={playerDisplayName}
                   you
                   active={turn === orientation[0]}
+                  score={score}
                 />
               </>
             ) : (
@@ -555,6 +798,7 @@ function ChessPracticeView({ playMode, setPlayMode }) {
                   name={user ? playerDisplayName : 'Player 1'}
                   you={Boolean(user)}
                   active={turn === 'w'}
+                  score={user ? score : undefined}
                 />
                 <PlayerRow label="Black" name="Player 2" active={turn === 'b'} />
               </>
@@ -565,6 +809,34 @@ function ChessPracticeView({ playMode, setPlayMode }) {
           <MoveHistory history={history} status={status} />
         </aside>
       </div>
+
+      <GameResultModal
+        open={isGameOver}
+        winner={status?.winner}
+        mySeat={playMode === 'bot' ? orientation : null}
+        mode={playMode === 'bot' ? 'computer' : 'pass'}
+        statusLabel={status?.label || 'Game over'}
+        whiteName={
+          playMode === 'bot'
+            ? orientation === 'white'
+              ? playerDisplayName
+              : `Computer (${difficultyLabel})`
+            : user
+              ? playerDisplayName
+              : 'Player 1'
+        }
+        blackName={
+          playMode === 'bot'
+            ? orientation === 'black'
+              ? playerDisplayName
+              : `Computer (${difficultyLabel})`
+            : 'Player 2'
+        }
+        scoreDelta={playMode === 'bot' ? botScoreDelta : null}
+        currentScore={playMode === 'bot' ? score : null}
+        primaryActionLabel="New game"
+        onPrimaryAction={reset}
+      />
     </>
   )
 }
@@ -612,6 +884,9 @@ export function PlayPage() {
             >
               {playMode === 'bot' ? 'Online Rooms' : 'Play vs Computer'}
             </Button>
+            <Button variant="secondary" onClick={() => navigate(ROUTES.learn)}>
+              Rules & Moves
+            </Button>
             <Button
               variant="secondary"
               onClick={() => navigate(ROUTES.foxPlay)}
@@ -653,6 +928,7 @@ export function PlayPage() {
               createLabel="Create 8×8 room"
               emptyText="No open Normal 8×8 Chess rooms right now. Create one and the next player who joins takes the black seat."
               onEnterRoom={(id) => navigate(`/play/${id}`)}
+              onSwitchToBot={() => setPlayMode('bot')}
             />
           </>
         ) : (

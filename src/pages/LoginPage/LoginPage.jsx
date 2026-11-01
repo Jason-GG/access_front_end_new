@@ -98,7 +98,10 @@ export function LoginPage() {
       </form>
 
       <p className={styles.switch}>
-        New to the club? <Link to={ROUTES.signup}>Create an account</Link>
+        New to the club?{' '}
+        <Link to={ROUTES.signup} state={location.state}>
+          Create an account
+        </Link>
       </p>
     </section>
   )

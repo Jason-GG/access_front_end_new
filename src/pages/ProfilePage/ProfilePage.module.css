@@ -1,0 +1,376 @@
+.page {
+  min-height: calc(100vh - 100px);
+  background: var(--canvas);
+}
+
+.heroBand {
+  background: var(--soft-cloud);
+  border-bottom: 1px solid var(--hairline);
+  padding: 36px 0;
+}
+
+.heroHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.identityCluster {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.avatarLarge {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--accent-pink);
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--ink);
+  flex-shrink: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.roleBadge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-teal);
+  background: rgba(0, 121, 107, 0.12);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+}
+
+.verifiedBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.metaLine {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.scoreCard {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  padding: 16px 22px;
+  min-width: 240px;
+}
+
+.scoreCardZero {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.scoreHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scoreLabel {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #92400e;
+}
+
+.scoreValue {
+  margin: 6px 0 2px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.scoreHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.sideCol {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  padding: 28px;
+}
+
+.cardHeader {
+  margin-bottom: 20px;
+}
+
+.cardTitle {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.cardSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.successBanner {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.errorBanner {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.input {
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.input:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.fieldHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.divider {
+  height: 1px;
+  background: var(--hairline-soft);
+  margin: 4px 0;
+}
+
+.passwordSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.statBox {
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline-soft);
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statNum {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.statWin {
+  color: #15803d;
+}
+
+.statLoss {
+  color: #b91c1c;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mute);
+}
+
+.quickPlayRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.emptyState {
+  margin: 0;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.recentList {
+  display: flex;
+  flex-direction: column;
+}
+
+.recentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+  font-size: 14px;
+}
+
+.recentRow:last-child {
+  border-bottom: none;
+}
+
+.recentMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resultPill {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--soft-cloud);
+}
+
+.resultWin {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.resultLoss {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.resultDraw {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.opponentName {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.colorTag {
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.recentDate {
+  font-size: 12px;
+  color: var(--mute);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

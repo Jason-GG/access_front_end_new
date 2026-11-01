@@ -893,7 +893,11 @@ export class FoxChess {
   getStatus() {
     if (this.isCheckmate()) {
       const winner = this.activeTurn === 'w' ? 'Black' : 'White'
-      return { kind: 'checkmate', label: `Checkmate — ${winner} wins!` }
+      return {
+        kind: 'checkmate',
+        winner: winner.toLowerCase(),
+        label: `Checkmate — ${winner} wins!`,
+      }
     }
     if (this.isStalemate()) {
       return { kind: 'draw', label: 'Draw by stalemate' }

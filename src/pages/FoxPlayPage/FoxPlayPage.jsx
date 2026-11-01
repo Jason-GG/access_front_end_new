@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as playApi from '../../api/playApi'
 import { CapturedPieces } from '../../components/chess/CapturedPieces'
 import { FoxChessBoard } from '../../components/chess/FoxChessBoard'
+import { PieceIcon } from '../../components/chess/pieces/FoxPieceIcons'
+import { GameResultModal } from '../../components/chess/GameResultModal'
 import { GameTimer } from '../../components/chess/GameTimer'
 import { MoveHistory } from '../../components/chess/MoveHistory'
 import { RoomChat } from '../../components/chess/RoomChat'
@@ -15,20 +17,28 @@ import { useFoxChessGame } from '../../hooks/useFoxChessGame'
 import { useFoxPlayRoom } from '../../hooks/useFoxPlayRoom'
 import { FoxChess } from '../../services/foxChessEngine'
 import { loadTokenScopedState, saveTokenScopedState } from '../../services/request'
-import { ROUTES, STORAGE_KEYS } from '../../utils/constants'
-import { cx } from '../../utils/helpers'
+import {
+  DEFAULT_TIME_CONTROL,
+  ROUTES,
+  STORAGE_KEYS,
+  formatTimeControlSummary,
+} from '../../utils/constants'
+import { buildRoomInviteUrl, copyToClipboard, cx } from '../../utils/helpers'
 import styles from './FoxPlayPage.module.css'
 
 function sameUser(a, b) {
   return a != null && b != null && String(a) === String(b)
 }
 
-function PlayerRow({ label, name, you, active }) {
+function PlayerRow({ label, name, you, active, score }) {
   return (
     <div className={cx(styles.player, active && styles.playerActive)}>
       <span className={styles.playerLabel}>{label}</span>
       <span className={styles.playerName}>
         {name || 'Waiting…'}
+        {typeof score === 'number' && !Number.isNaN(score) ? (
+          <span className={styles.playerScore}>★ {score} pts</span>
+        ) : null}
         {you ? <span className={styles.youTag}>you</span> : null}
       </span>
     </div>
@@ -39,7 +49,7 @@ function PlayerRow({ label, name, you, active }) {
 // Online Fox Chess Room View (Connected via WebSocket & REST to backend API)
 // ---------------------------------------------------------------------------
 function FoxRoomView({ roomId, onLeave }) {
-  const { user } = useAuth()
+  const { user, score, refreshUser, applyScoreChange } = useAuth()
   const game = useFoxPlayRoom({
     roomId,
     currentUserId: user?.id,
@@ -47,41 +57,159 @@ function FoxRoomView({ roomId, onLeave }) {
     currentUsername: user?.username || user?.handle,
   })
   const [confirmResign, setConfirmResign] = useState(false)
+  const [confirmLeaveAction, setConfirmLeaveAction] = useState(null)
   const [copied, setCopied] = useState(false)
   const [justStarted, setJustStarted] = useState(false)
   const [showRules, setShowRules] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [lastScoreDelta, setLastScoreDelta] = useState(null)
+  const settledRoomRef = useRef(false)
+  const leftExplicitlyRef = useRef(false)
   const prevStatusRef = useRef(game.gameStatus)
 
-  const handleDeleteRoom = useCallback(async () => {
+  const waiting = game.gameStatus === 'waiting' || game.status?.kind === 'waiting'
+  const gameOver =
+    game.gameStatus === 'finished' ||
+    game.status?.kind === 'finished' ||
+    game.status?.kind === 'draw' ||
+    game.status?.kind === 'checkmate'
+  const isGameUnfinished = !gameOver && !game.loading && !game.roomDeleted
+  const hasActiveOpponentOrMoves =
+    !waiting ||
+    (Array.isArray(game.history) && game.history.length > 0) ||
+    Boolean(game.whitePlayer && game.blackPlayer)
+
+  const executeDeleteRoom = useCallback(async () => {
     if (deleting) return
+    leftExplicitlyRef.current = true
     setDeleting(true)
     const deleted = await game.deleteRoom()
     if (deleted) {
+      refreshUser()
       onLeave()
     } else {
+      leftExplicitlyRef.current = false
       setDeleting(false)
     }
-  }, [deleting, game, onLeave])
+  }, [deleting, game, onLeave, refreshUser])
 
-  const handleLeaveRoom = useCallback(async () => {
-    if (leaving || deleting) return
-    setLeaving(true)
-    try {
-      if (!game.roomDeleted && typeof game.leaveRoom === 'function') {
-        await game.leaveRoom()
+  const executeLeaveRoom = useCallback(
+    async (targetHref = null) => {
+      if (leaving || deleting) return
+      leftExplicitlyRef.current = true
+      setLeaving(true)
+      try {
+        if (!game.roomDeleted && typeof game.leaveRoom === 'function') {
+          await game.leaveRoom()
+        }
+      } finally {
+        refreshUser()
+        if (typeof targetHref === 'string' && targetHref) {
+          const hashIdx = targetHref.indexOf('#')
+          if (hashIdx >= 0) {
+            window.location.hash = targetHref.slice(hashIdx)
+          } else {
+            onLeave()
+          }
+        } else {
+          onLeave()
+        }
       }
-    } finally {
-      onLeave()
+    },
+    [leaving, deleting, game, onLeave, refreshUser],
+  )
+
+  const handleDeleteRoom = useCallback(() => {
+    if (deleting || leaving) return
+    if (isGameUnfinished) {
+      setConfirmLeaveAction({ type: 'delete', href: null })
+      return
     }
-  }, [leaving, deleting, game, onLeave])
+    executeDeleteRoom()
+  }, [deleting, leaving, isGameUnfinished, executeDeleteRoom])
+
+  const handleLeaveRoom = useCallback(() => {
+    if (leaving || deleting) return
+    if (isGameUnfinished) {
+      setConfirmLeaveAction({ type: 'leave', href: null })
+      return
+    }
+    executeLeaveRoom()
+  }, [leaving, deleting, isGameUnfinished, executeLeaveRoom])
+
+  const handleConfirmLeaveAction = useCallback(async () => {
+    const action = confirmLeaveAction
+    setConfirmLeaveAction(null)
+    if (!action) return
+    if (action.type === 'delete') {
+      await executeDeleteRoom()
+    } else {
+      await executeLeaveRoom(action.href)
+    }
+  }, [confirmLeaveAction, executeDeleteRoom, executeLeaveRoom])
+
+  useEffect(() => {
+    if (gameOver && confirmLeaveAction) {
+      setConfirmLeaveAction(null)
+    }
+  }, [gameOver, confirmLeaveAction])
+
+  useEffect(() => {
+    if (!isGameUnfinished) return undefined
+    const handleDocumentClick = (event) => {
+      if (leftExplicitlyRef.current) return
+      const anchor = event.target?.closest?.('a[href]')
+      if (!anchor) return
+      const rawHref = anchor.getAttribute('href') || ''
+      if (!rawHref || rawHref.startsWith('javascript:') || rawHref === '#') return
+      if (roomId && rawHref.includes(roomId)) return
+      event.preventDefault()
+      event.stopPropagation()
+      setConfirmLeaveAction({ type: 'navigate', href: rawHref })
+    }
+    document.addEventListener('click', handleDocumentClick, true)
+    return () => document.removeEventListener('click', handleDocumentClick, true)
+  }, [isGameUnfinished, roomId])
+
+  useEffect(() => {
+    if (!isGameUnfinished || !hasActiveOpponentOrMoves) return undefined
+    const handleBeforeUnload = (event) => {
+      if (leftExplicitlyRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isGameUnfinished, hasActiveOpponentOrMoves])
 
   useEffect(() => {
     if (game.roomDeleted) {
+      leftExplicitlyRef.current = true
+      refreshUser()
       onLeave()
     }
-  }, [game.roomDeleted, onLeave])
+  }, [game.roomDeleted, onLeave, refreshUser])
+
+  useEffect(() => {
+    return () => {
+      if (!leftExplicitlyRef.current && roomId && !window.location.hash.includes(roomId)) {
+        saveTokenScopedState(`${STORAGE_KEYS.roomStatePrefix}fox:${roomId}`, null)
+        playApi
+          .leaveRoom(roomId)
+          .then(() => refreshUser())
+          .catch(() => {})
+      }
+    }
+  }, [roomId, refreshUser])
+
+  useEffect(() => {
+    if (game.gameStatus === 'waiting') {
+      settledRoomRef.current = false
+      setLastScoreDelta(null)
+      refreshUser()
+    }
+  }, [game.gameId, game.gameStatus, refreshUser])
 
   useEffect(() => {
     if (prevStatusRef.current === 'waiting' && game.gameStatus === 'active') {
@@ -93,21 +221,53 @@ function FoxRoomView({ roomId, onLeave }) {
   }, [game.gameStatus])
 
   const copyInvite = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
+    const link = buildRoomInviteUrl(`/play/fox/${roomId}`)
+    const ok = await copyToClipboard(link)
+    if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // ignore
+    } else {
+      setCopied(false)
     }
   }
 
-  const waiting = game.gameStatus === 'waiting'
-  const gameOver = game.gameStatus === 'finished'
+  useEffect(() => {
+    if (!gameOver || game.result === 'aborted' || !game.isPlayer || settledRoomRef.current) {
+      return
+    }
+    settledRoomRef.current = true
+    const rawWinner = game.status?.winner
+    const winnerNorm =
+      rawWinner === 'white' || rawWinner === 'w'
+        ? 'white'
+        : rawWinner === 'black' || rawWinner === 'b'
+          ? 'black'
+          : null
+    const myColor =
+      game.mySeat === 'black' || game.mySeat === 'b'
+        ? 'black'
+        : game.mySeat === 'white' || game.mySeat === 'w'
+          ? 'white'
+          : null
+    const delta = winnerNorm && myColor ? (winnerNorm === myColor ? 5 : -5) : 0
+    setLastScoreDelta(delta)
+    if (delta !== 0) {
+      applyScoreChange(delta)
+    }
+    refreshUser()
+  }, [
+    gameOver,
+    game.result,
+    game.isPlayer,
+    game.status?.winner,
+    game.mySeat,
+    applyScoreChange,
+    refreshUser,
+  ])
 
   const statusText = (() => {
     if (waiting) return 'Waiting for an opponent…'
-    if (gameOver) return game.result ? `Game over · ${game.result}` : 'Game over'
+    if (gameOver) return game.status?.label || (game.result ? `Game over · ${game.result}` : 'Game over')
     if (game.status.kind === 'check') return 'Check — King is threatened!'
     return game.isMyTurn ? 'Your move' : 'Opponent’s turn'
   })()
@@ -155,7 +315,9 @@ function FoxRoomView({ roomId, onLeave }) {
       <div className="container">
         <header className={styles.header}>
           <div>
-            <p className="eyebrow">Online 10×10 room</p>
+            <p className="eyebrow">
+              Online 10×10 room · ⏱ {formatTimeControlSummary(game.timeControl)}
+            </p>
             <h1 className={styles.title}>
               {game.whitePlayer?.username || 'White'} vs{' '}
               {game.blackPlayer?.username || 'Black'}{' '}
@@ -174,24 +336,6 @@ function FoxRoomView({ roomId, onLeave }) {
             </span>
             <Button variant="secondary" size="sm" onClick={() => setShowRules(true)}>
               Rules & Moves
-            </Button>
-            {game.canDeleteRoom && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDeleteRoom}
-                disabled={deleting || leaving}
-              >
-                {deleting ? 'Deleting…' : 'Delete room'}
-              </Button>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLeaveRoom}
-              disabled={leaving || deleting}
-            >
-              {leaving ? 'Leaving…' : 'Leave'}
             </Button>
           </div>
         </header>
@@ -291,11 +435,6 @@ function FoxRoomView({ roomId, onLeave }) {
                   </Button>
                 </>
               )}
-              {waiting && game.isPlayer && (
-                <Button variant="secondary" size="sm" onClick={game.abort}>
-                  Abort game
-                </Button>
-              )}
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
@@ -350,12 +489,14 @@ function FoxRoomView({ roomId, onLeave }) {
                 name={game.whitePlayer?.username}
                 you={game.mySeat === 'white'}
                 active={game.gameStatus === 'active' && game.turn === 'w'}
+                score={game.mySeat === 'white' ? score : game.whitePlayer?.score}
               />
               <PlayerRow
                 label="Black"
                 name={game.blackPlayer?.username}
                 you={game.mySeat === 'black'}
                 active={game.gameStatus === 'active' && game.turn === 'b'}
+                score={game.mySeat === 'black' ? score : game.blackPlayer?.score}
               />
             </div>
 
@@ -387,6 +528,88 @@ function FoxRoomView({ roomId, onLeave }) {
         </Button>
       </Modal>
 
+      <Modal
+        open={Boolean(confirmLeaveAction)}
+        title={
+          confirmLeaveAction?.type === 'delete'
+            ? 'Delete room before game finishes?'
+            : 'Leave unfinished game?'
+        }
+        onClose={() => {
+          if (!leaving && !deleting) setConfirmLeaveAction(null)
+        }}
+      >
+        <p className={styles.modalBody}>
+          This 10×10 Fox Chess game is not finished yet. Please read these tips before leaving:
+        </p>
+        <div className={styles.leaveWarnBox}>
+          <p className={styles.leaveWarnTitle}>Important Tips</p>
+          <ul className={styles.leaveWarnTips}>
+            {hasActiveOpponentOrMoves ? (
+              <>
+                <li>
+                  <strong>Forfeit &amp; Score Penalty:</strong> Leaving an unfinished game counts as
+                  a loss and deducts <strong>5 score points (-5 pts)</strong> from your record
+                  (your opponent gains +5 pts).
+                </li>
+                <li>
+                  <strong>Game Resets from Beginning:</strong> If you or another player return to
+                  this room later, the chess game will <strong>start over from the beginning</strong>.
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <strong>Game Not Finished:</strong> You are currently waiting for an opponent to
+                  join this room.
+                </li>
+                <li>
+                  <strong>Score &amp; Reset Rule:</strong> Once an opponent joins, leaving before
+                  the game finishes will cost <strong>-5 score points</strong> and reset the game
+                  from the beginning.
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+        <div className={styles.modalActions}>
+          <Button
+            variant="secondary"
+            onClick={() => setConfirmLeaveAction(null)}
+            disabled={leaving || deleting}
+          >
+            Stay in room
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleConfirmLeaveAction}
+            disabled={leaving || deleting}
+          >
+            {confirmLeaveAction?.type === 'delete'
+              ? deleting
+                ? 'Deleting…'
+                : 'Delete room anyway'
+              : leaving
+                ? 'Leaving…'
+                : 'Leave room anyway'}
+          </Button>
+        </div>
+      </Modal>
+
+      <GameResultModal
+        open={gameOver && game.result !== 'aborted'}
+        winner={game.status?.winner}
+        mySeat={game.mySeat}
+        mode="online"
+        statusLabel={game.status?.label || 'Game over'}
+        whiteName={game.whitePlayer?.username || 'White'}
+        blackName={game.blackPlayer?.username || 'Black'}
+        scoreDelta={lastScoreDelta}
+        currentScore={game.isPlayer ? score : null}
+        primaryActionLabel="Back to lobby"
+        onPrimaryAction={() => executeLeaveRoom()}
+      />
+
       <RulesModal open={showRules} onClose={() => setShowRules(false)} />
     </section>
   )
@@ -396,7 +619,7 @@ function FoxRoomView({ roomId, onLeave }) {
 // Offline / Practice View (Play vs House Bot or Local Pass & Play)
 // ---------------------------------------------------------------------------
 function FoxPracticeView({ playMode, setPlayMode }) {
-  const { user } = useAuth()
+  const { user, score, applyScoreChange } = useAuth()
   const playerDisplayName = user?.username || user?.handle || 'You'
   const [orientation, setOrientation] = useState(
     () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.orientation || 'white',
@@ -419,6 +642,44 @@ function FoxPracticeView({ playMode, setPlayMode }) {
     reset,
     canUndo,
   } = useFoxChessGame({ playMode, orientation, difficulty })
+  const [botScoreDelta, setBotScoreDelta] = useState(null)
+  const settledBotGameRef = useRef(null)
+
+  useEffect(() => {
+    if (playMode !== 'bot' || !isGameOver) {
+      setBotScoreDelta(null)
+      return
+    }
+    const gameKey = `${resetKey}-${history.length}`
+    if (settledBotGameRef.current === gameKey) return
+    settledBotGameRef.current = gameKey
+
+    const rawWinner = status?.winner
+    const winnerNorm =
+      rawWinner === 'white' || rawWinner === 'w'
+        ? 'white'
+        : rawWinner === 'black' || rawWinner === 'b'
+          ? 'black'
+          : null
+    const myColor = orientation === 'black' ? 'black' : 'white'
+    const outcome = winnerNorm ? (winnerNorm === myColor ? 'win' : 'loss') : 'draw'
+    const delta = outcome === 'win' ? 5 : outcome === 'loss' ? -5 : 0
+
+    setBotScoreDelta(delta)
+    if (delta !== 0) {
+      applyScoreChange(delta)
+    }
+    if (user) {
+      playApi
+        .recordBotResult({ outcome, boardType: 'achess' })
+        .then((res) => {
+          if (typeof res?.score === 'number') {
+            applyScoreChange({ newScore: res.score })
+          }
+        })
+        .catch(() => {})
+    }
+  }, [playMode, isGameOver, resetKey, history.length, status?.winner, orientation, user, applyScoreChange])
 
   const difficultyLabel =
     difficulty === 'easy' ? 'Easy' : difficulty === 'hard' ? 'Hard' : 'Medium'
@@ -531,6 +792,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
         <div className={styles.boardCol}>
           <FoxChessBoard
             game={game}
+            fen={game.fen()}
             orientation={orientation}
             onPieceDrop={makeMove}
             canDragPiece={canDragPiece}
@@ -556,6 +818,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
                   name={playerDisplayName}
                   you
                   active={turn === orientation[0]}
+                  score={score}
                 />
               </>
             ) : (
@@ -565,6 +828,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
                   name={user ? playerDisplayName : 'Player 1'}
                   you={Boolean(user)}
                   active={turn === 'w'}
+                  score={user ? score : undefined}
                 />
                 <PlayerRow label="Black" name="Player 2" active={turn === 'b'} />
               </>
@@ -575,11 +839,40 @@ function FoxPracticeView({ playMode, setPlayMode }) {
           <MoveHistory history={history} status={status} />
         </aside>
       </div>
+
+      <GameResultModal
+        open={isGameOver}
+        winner={status?.winner}
+        mySeat={playMode === 'bot' ? orientation : null}
+        mode={playMode === 'bot' ? 'computer' : 'pass'}
+        statusLabel={status?.label || 'Game over'}
+        whiteName={
+          playMode === 'bot'
+            ? orientation === 'white'
+              ? playerDisplayName
+              : `Computer (${difficultyLabel})`
+            : user
+              ? playerDisplayName
+              : 'Player 1'
+        }
+        blackName={
+          playMode === 'bot'
+            ? orientation === 'black'
+              ? playerDisplayName
+              : `Computer (${difficultyLabel})`
+            : 'Player 2'
+        }
+        scoreDelta={playMode === 'bot' ? botScoreDelta : null}
+        currentScore={playMode === 'bot' ? score : null}
+        primaryActionLabel="New game"
+        onPrimaryAction={reset}
+      />
     </>
   )
 }
 
 function RulesModal({ open, onClose }) {
+  const navigate = useNavigate()
   return (
     <Modal open={open} title="Fox Chess (10×10 Rules)" onClose={onClose}>
       <div className={styles.rulesModalCard}>
@@ -605,7 +898,13 @@ function RulesModal({ open, onClose }) {
       </div>
 
       <div className={styles.rulesModalCard}>
-        <h3 className={styles.rulesTitle}>🦊🔴 Red-eared Fox (Fox 1)</h3>
+        <h3 className={styles.rulesTitle}>
+          <PieceIcon
+            pieceCode="wRF"
+            svgStyle={{ width: 24, height: 24, verticalAlign: 'middle', marginRight: 6 }}
+          />
+          Red-eared Fox (Fox 1)
+        </h3>
         <p className={styles.rulesText}>
           Located on the <strong>α file</strong>. Moves <strong>3 squares</strong> in one
           orthogonal direction and turns <strong>1 square</strong> perpendicular (a (3,1) leaper).
@@ -614,7 +913,13 @@ function RulesModal({ open, onClose }) {
       </div>
 
       <div className={styles.rulesModalCard}>
-        <h3 className={styles.rulesTitle}>🦊 Normal Fox (Fox 2)</h3>
+        <h3 className={styles.rulesTitle}>
+          <PieceIcon
+            pieceCode="wF"
+            svgStyle={{ width: 24, height: 24, verticalAlign: 'middle', marginRight: 6 }}
+          />
+          Normal Fox (Fox 2)
+        </h3>
         <p className={styles.rulesText}>
           Located on the <strong>β file</strong>. Moves in all 8 Queen directions (orthogonal &
           diagonal) like the Queen, but <strong>half length</strong>: a maximum of{' '}
@@ -630,6 +935,19 @@ function RulesModal({ open, onClose }) {
           Queen, Rook, Bishop, Knight, Red-eared Fox, or Normal Fox.
         </p>
       </div>
+
+      <div style={{ marginTop: '14px', display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            onClose()
+            navigate(ROUTES.learn)
+          }}
+        >
+          Open Animated Rules & Pieces Guide →
+        </Button>
+      </div>
     </Modal>
   )
 }
@@ -641,6 +959,9 @@ export function FoxPlayPage() {
   const navigate = useNavigate()
   const { roomId } = useParams()
   const [searchParams] = useSearchParams()
+  const { score, refreshUser } = useAuth()
+  const numericScore = typeof score === 'number' && !Number.isNaN(score) ? score : 500
+  const isZeroScore = numericScore <= 0
   const [playMode, setPlayModeState] = useState(
     () => loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.playMode || 'online',
   ) // 'online' | 'bot' | 'pass'
@@ -657,7 +978,19 @@ export function FoxPlayPage() {
     })
   }, [])
 
-  const handleCreateRoom = useCallback(async () => {
+  const handleCreateRoom = useCallback(async (requestedTimeControl) => {
+    if (isZeroScore) {
+      setCreateError(
+        'Your score is 0. Please play vs Computer to win at least 5 points before competing with other players.',
+      )
+      return
+    }
+    const chosenTc =
+      requestedTimeControl &&
+      typeof requestedTimeControl === 'object' &&
+      typeof requestedTimeControl.minutesA === 'number'
+        ? requestedTimeControl
+        : DEFAULT_TIME_CONTROL
     setCreatingRoom(true)
     setCreateError(null)
     try {
@@ -669,11 +1002,13 @@ export function FoxPlayPage() {
         turn: initialEngine.turn(),
         history: [],
         captured: { white: [], black: [] },
+        timeControl: chosenTc,
       }
       const res = await playApi.createRoom({
         boardType: 'achess',
         variant: 'fox',
         fen: initialEngine.fen(),
+        timeControl: chosenTc,
         state: initialState,
       })
       const newRoomId = res?.room?.id || res?.id
@@ -684,10 +1019,13 @@ export function FoxPlayPage() {
       }
     } catch (err) {
       setCreateError(err?.message || 'Could not create a room.')
+      if (err?.status === 403) {
+        refreshUser()
+      }
     } finally {
       setCreatingRoom(false)
     }
-  }, [navigate])
+  }, [navigate, isZeroScore, refreshUser])
 
   // Support ?action=create or ?create=true to instantly create a room
   useEffect(() => {
@@ -717,7 +1055,12 @@ export function FoxPlayPage() {
               variant="primary"
               size="sm"
               onClick={handleCreateRoom}
-              disabled={creatingRoom}
+              disabled={creatingRoom || isZeroScore}
+              title={
+                isZeroScore
+                  ? 'Score is 0 — win vs Computer first to unlock online rooms'
+                  : undefined
+              }
             >
               {creatingRoom ? 'Creating room…' : 'Create Fox Chess Room'}
             </Button>
@@ -774,6 +1117,7 @@ export function FoxPlayPage() {
               emptyText="No open 10×10 Fox Chess rooms right now. Click 'Create 10×10 room' and the next player who joins takes the black seat!"
               onCreateRoom={handleCreateRoom}
               onEnterRoom={(id) => navigate(`/play/fox/${id}`)}
+              onSwitchToBot={() => setPlayMode('bot')}
             />
           </>
         ) : (

@@ -135,3 +135,64 @@
 .replyLink:hover {
   color: var(--accent-pink-hover);
 }
+
+.repliesSection {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--hairline);
+  display: grid;
+  gap: 10px;
+}
+
+.repliesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.replyItem {
+  background: var(--canvas-dim, #f8f7f4);
+  border-left: 2px solid var(--ink);
+  padding: 8px 12px;
+}
+
+.replyMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.replyAuthor {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.replyText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--charcoal);
+}
+
+.replyForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.replyInput {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--hairline);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.replyInput:focus {
+  outline: none;
+  border-color: var(--ink);
+}

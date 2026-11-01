@@ -10,16 +10,18 @@ import styles from './Navbar.module.css'
 const NAV_LINKS = [
   { to: ROUTES.play, label: 'Play' },
   { to: ROUTES.foxPlay, label: 'Fox Chess' },
-  { to: ROUTES.learn, label: 'Learn' },
+  { to: ROUTES.learn, label: 'Rules & Learn' },
   { to: ROUTES.community, label: 'Community' },
   { to: ROUTES.news, label: 'News' },
   { to: ROUTES.donate, label: 'Donate' },
 ]
 
 export function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, score, logout } = useAuth()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const numericScore = typeof score === 'number' ? score : 500
+  const isZeroScore = numericScore <= 0
 
   const displayName =
     user?.username ||
@@ -51,19 +53,42 @@ export function Navbar() {
             </NavLink>
             {user ? (
               <>
-                <span
+                <NavLink
+                  to={ROUTES.profile}
                   className={styles.utilityUser}
-                  title={user.email ? `${displayName} (${user.email})` : `Signed in as ${displayName}`}
+                  title="Click to view and edit your profile"
                 >
                   Signed in as <strong className={styles.utilityUserName}>{displayName}</strong>
+                  <span
+                    className={cx(
+                      styles.utilityScoreBadge,
+                      isZeroScore && styles.utilityScoreZero,
+                    )}
+                    title={
+                      isZeroScore
+                        ? '0 score — play vs Computer to win +5 score per game'
+                        : 'Win: +5 score · Loss: -5 score (New user default: 500)'
+                    }
+                  >
+                    ★ {numericScore} pts
+                  </span>
                   {isAdmin && <span className={styles.utilityRoleBadge}>Admin</span>}
-                </span>
+                </NavLink>
                 <button type="button" className={styles.utilityLink} onClick={logout}>
                   Sign out
                 </button>
               </>
             ) : (
               <>
+                <span
+                  className={cx(
+                    styles.utilityScoreBadge,
+                    isZeroScore && styles.utilityScoreZero,
+                  )}
+                  title="Guest score (Default: 500 · Win: +5 · Loss: -5)"
+                >
+                  ★ {numericScore} pts
+                </span>
                 <NavLink to={ROUTES.signup} className={styles.utilityLink}>
                   Join us
                 </NavLink>
@@ -78,9 +103,9 @@ export function Navbar() {
 
       <div className={styles.nav}>
         <div className={styles.navInner}>
-          <NavLink to={ROUTES.home} className={styles.brand} aria-label="Access Chess home">
+          <NavLink to={ROUTES.home} className={styles.brand} aria-label="Achess home">
             <img src={knightMark} className={styles.mark} alt="" />
-            <span className={styles.brandName}>ACCESS CHESS</span>
+            <span className={styles.brandName}>Achess</span>
           </NavLink>
 
           <nav className={styles.links} aria-label="Primary">
@@ -111,17 +136,28 @@ export function Navbar() {
             </form>
 
             {user && (
-              <div
+              <NavLink
+                to={ROUTES.profile}
                 className={styles.userBadge}
-                title={user.email ? `Signed in as ${displayName} (${user.email})` : `Signed in as ${displayName}`}
-                aria-label={`Signed in as ${displayName}`}
+                title="View and edit your profile"
+                aria-label={`View profile for ${displayName}, score ${numericScore}`}
               >
                 <span className={styles.userAvatar} aria-hidden="true">
                   {userInitial}
                 </span>
                 <span className={cx(styles.handle, 'notation')}>{displayName}</span>
+                <span
+                  className={cx(styles.scoreTag, isZeroScore && styles.scoreTagZero)}
+                  title={
+                    isZeroScore
+                      ? '0 score — beat the Computer (+5 pts) to unlock PvP rooms'
+                      : `Current score: ${numericScore} pts (+5 win / -5 loss)`
+                  }
+                >
+                  ★ {numericScore}
+                </span>
                 {isAdmin && <span className={styles.roleTag}>Admin</span>}
-              </div>
+              </NavLink>
             )}
 
             {user ? (

@@ -211,3 +211,8 @@ export function listComments(id, { cursor, limit = 50 } = {}) {
 export function postComment(id, body) {
   return httpClient.post(`/play/rooms/${id}/comments`, { body })
 }
+
+export function recordBotResult({ outcome, boardType = 'chess' } = {}) {
+  return httpClient.post('/play/bot-result', { outcome, boardType })
+}
+

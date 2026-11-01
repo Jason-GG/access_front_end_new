@@ -5,6 +5,7 @@ import { AuthContext } from './authContext'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => authService.getCurrentUser())
+  const [guestScore, setGuestScoreState] = useState(() => authService.getGuestScore())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export function AuthProvider({ children }) {
     function syncSessionFromStorage() {
       if (!active) return
       setUser(authService.getCurrentUser())
+      setGuestScoreState(authService.getGuestScore())
     }
 
     window.addEventListener(AUTH_SESSION_EVENT, syncSessionFromStorage)
@@ -39,6 +41,39 @@ export function AuthProvider({ children }) {
       window.removeEventListener(AUTH_SESSION_EVENT, syncSessionFromStorage)
       window.removeEventListener('storage', syncSessionFromStorage)
     }
+  }, [])
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const refreshed = await authService.fetchCurrentUser()
+      if (refreshed) {
+        setUser(refreshed)
+      }
+      return refreshed
+    } catch {
+      return null
+    }
+  }, [])
+
+  const applyScoreChange = useCallback((deltaOrOptions) => {
+    if (typeof deltaOrOptions === 'object' && deltaOrOptions !== null && typeof deltaOrOptions.newScore === 'number') {
+      const updated = authService.updateStoredUserScore(deltaOrOptions.newScore)
+      if (updated) {
+        setUser(updated)
+        return updated.score
+      }
+      const clamped = authService.setGuestScore(deltaOrOptions.newScore)
+      setGuestScoreState(clamped)
+      return clamped
+    }
+    const delta = typeof deltaOrOptions === 'number' ? deltaOrOptions : Number(deltaOrOptions?.delta || 0)
+    const res = authService.adjustStoredUserScore(delta)
+    if (res.user) {
+      setUser(res.user)
+    } else {
+      setGuestScoreState(res.score)
+    }
+    return res.score
   }, [])
 
   const login = useCallback(async (username, password) => {
@@ -68,23 +103,55 @@ export function AuthProvider({ children }) {
     return authService.resendVerification(email)
   }, [])
 
+  const updateProfile = useCallback(async (payload) => {
+    const result = await authService.updateProfile(payload)
+    if (result?.user) {
+      setUser(result.user)
+    }
+    return result
+  }, [])
+
   const logout = useCallback(async () => {
     await authService.logout()
     setUser(null)
   }, [])
 
+  const score =
+    user && typeof user.score === 'number'
+      ? user.score
+      : user
+        ? authService.DEFAULT_USER_SCORE
+        : guestScore
+
   const value = useMemo(
     () => ({
       user,
+      score,
       loading,
       login,
       signup,
       sendVerificationCode,
       verifyEmail,
       resendVerification,
+      updateProfile,
       logout,
+      refreshUser,
+      applyScoreChange,
     }),
-    [user, loading, login, signup, sendVerificationCode, verifyEmail, resendVerification, logout],
+    [
+      user,
+      score,
+      loading,
+      login,
+      signup,
+      sendVerificationCode,
+      verifyEmail,
+      resendVerification,
+      updateProfile,
+      logout,
+      refreshUser,
+      applyScoreChange,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

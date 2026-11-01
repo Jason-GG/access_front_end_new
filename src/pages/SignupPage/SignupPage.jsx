@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
 import { useAuth } from '../../hooks/useAuth'
@@ -16,6 +16,8 @@ import styles from './SignupPage.module.css'
 export function SignupPage() {
   const { signup, sendVerificationCode, login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from?.pathname || ROUTES.play
 
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -94,15 +96,15 @@ export function SignupPage() {
       })
 
       if (result.authenticated) {
-        navigate(ROUTES.play, { replace: true })
+        navigate(from, { replace: true })
         return
       }
 
       try {
         await login(username.trim(), password)
-        navigate(ROUTES.play, { replace: true })
+        navigate(from, { replace: true })
       } catch {
-        navigate(ROUTES.login, { replace: true })
+        navigate(ROUTES.login, { replace: true, state: location.state })
       }
     } catch (err) {
       setFormError(err.message || 'Registration failed.')
@@ -226,7 +228,10 @@ export function SignupPage() {
       </form>
 
       <p className={styles.switch}>
-        Already a member? <Link to={ROUTES.login}>Log in</Link>
+        Already a member?{' '}
+        <Link to={ROUTES.login} state={location.state}>
+          Log in
+        </Link>
       </p>
     </section>
   )

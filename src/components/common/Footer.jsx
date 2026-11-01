@@ -45,7 +45,7 @@ export function Footer() {
         <div className={styles.brandCol}>
           <p className={styles.brand}>
             <img src={knightMark} className={styles.mark} alt="" />
-            <span className={styles.brandName}>ACCESS CHESS</span>
+            <span className={styles.brandName}>Achess</span>
           </p>
           <p className={styles.tagline}>
             A chess club for players who train like athletes. Play, learn, compete.
@@ -66,7 +66,7 @@ export function Footer() {
 
       <div className={styles.finePrint}>
         <div className={styles.fineInner}>
-          <span>© 2026 Access Chess</span>
+          <span>© 2026 Achess</span>
           <span>Terms of Use · Privacy Policy · Supply Chain Act</span>
           <span>Shanghai, CN</span>
         </div>

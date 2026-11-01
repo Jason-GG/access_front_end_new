@@ -10,6 +10,7 @@ import { LoginPage } from '../pages/LoginPage/LoginPage'
 import { NewsPage } from '../pages/NewsPage/NewsPage'
 import { NotFoundPage } from '../pages/NotFoundPage/NotFoundPage'
 import { PlayPage } from '../pages/PlayPage/PlayPage'
+import { ProfilePage } from '../pages/ProfilePage/ProfilePage'
 import { SignupPage } from '../pages/SignupPage/SignupPage'
 import { VerifyEmailPage } from '../pages/VerifyEmailPage/VerifyEmailPage'
 import { ROUTES } from '../utils/constants'
@@ -21,6 +22,7 @@ export function AppRouter() {
       <Route element={<AppLayout />}>
         <Route path={ROUTES.home} element={<HomePage />} />
         <Route path={ROUTES.learn} element={<LearnPage />} />
+        <Route path={ROUTES.rules} element={<LearnPage />} />
         <Route path={ROUTES.news} element={<NewsPage />} />
         <Route path={ROUTES.donate} element={<DonatePage />} />
 
@@ -30,6 +32,7 @@ export function AppRouter() {
           <Route path={ROUTES.foxPlay} element={<FoxPlayPage />} />
           <Route path={ROUTES.foxPlayRoom} element={<FoxPlayPage />} />
           <Route path={ROUTES.community} element={<CommunityPage />} />
+          <Route path={ROUTES.profile} element={<ProfilePage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

@@ -7,16 +7,19 @@ import {
   getCapturedFromFen,
   getGameStatus,
   isDrawResult,
+  winnerFromResult,
 } from '../services/chessService'
 import {
+  ensureFreshAccessToken,
   getStoredAccessToken,
   getWebSocketBaseUrl,
   loadTokenScopedState,
   saveTokenScopedState,
 } from '../services/request'
-import { STORAGE_KEYS } from '../utils/constants'
+import { STORAGE_KEYS, resolveRoomTimeControl } from '../utils/constants'
 
 const WAITING_POLL_MS = 1500
+const ACTIVE_POLL_MS = 3000
 const CLOCK_TICK_MS = 500
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
@@ -90,6 +93,7 @@ export function usePlayRoom({
   const roomDeletedRef = useRef(false)
   const pendingMoveRef = useRef(false)
   const lastMoveSentAtRef = useRef(0)
+  const gameIdRef = useRef(null)
   const handleMessageRef = useRef(() => {})
   const refreshMovesRef = useRef(() => {})
 
@@ -139,14 +143,43 @@ export function usePlayRoom({
 
       if (snap.seat) setJoinedSeat(snap.seat)
       if (source.seat) setJoinedSeat(source.seat)
+      if (Array.isArray(source.members) && (currentUserId || currentUsername)) {
+        const me = source.members.find((m) => {
+          const uid = getMemberUserId(m)
+          const uname = m.username || m.user?.username
+          if (uid && currentUserId) return sameId(uid, currentUserId)
+          if (uname && currentUsername) return sameId(uname, currentUsername)
+          return false
+        })
+        if (me?.seat) setJoinedSeat(me.seat)
+      }
+
+      const nextGameId = source.gameId || source.game?.id
+      const gameChanged = Boolean(
+        nextGameId && gameIdRef.current && String(nextGameId) !== String(gameIdRef.current),
+      )
+      if (nextGameId) {
+        gameIdRef.current = nextGameId
+      }
 
       const mergedStatus = source.status || source.game?.status
       const mergedResult = source.result || source.game?.result
+      const isGameReset = Boolean(
+        snap.gameReset || source.gameReset || gameChanged || mergedStatus === 'waiting',
+      )
+
+      if (isGameReset) {
+        pendingMoveRef.current = false
+        lastMoveSentAtRef.current = 0
+        setDrawOfferBy(null)
+        setTakeback(null)
+      }
+
       setRoom((prev) => ({
         ...(prev || {}),
         ...source,
         ...(mergedStatus ? { status: mergedStatus } : {}),
-        ...(mergedResult ? { result: mergedResult } : {}),
+        result: mergedResult ?? (isGameReset ? null : prev?.result ?? null),
       }))
 
       const rawMoves = Array.isArray(source.moves)
@@ -171,14 +204,18 @@ export function usePlayRoom({
 
       const currentCount = historyRef.current ? historyRef.current.length : 0
       const isRecentLocalMove =
-        pendingMoveRef.current || Date.now() - lastMoveSentAtRef.current < 4000
+        !isGameReset &&
+        (pendingMoveRef.current || Date.now() - lastMoveSentAtRef.current < 4000)
 
       if (rawMoves && rawMoves.length > 0) {
         const built = buildHistoryFromMoves(
           rawMoves,
           source.initialFen || source.game?.state?.initialFen,
         )
-        if (built.history.length >= currentCount) {
+        const shouldUpdate = isRecentLocalMove
+          ? built.history.length >= currentCount
+          : built.history.length !== currentCount || !fenRef.current
+        if (shouldUpdate) {
           const resolvedFen =
             (incomingFen && incomingFen !== START_FEN && built.history.length > currentCount
               ? incomingFen
@@ -188,14 +225,14 @@ export function usePlayRoom({
             START_FEN
           updateBoardState(resolvedFen, built.history)
         }
-      } else if (Array.isArray(rawMoves) && rawMoves.length === 0 && !isRecentLocalMove) {
-        const clientHistory = Array.isArray(source.clientState?.history)
-          ? source.clientState.history
-          : Array.isArray(source.state?.clientState?.history)
-            ? source.state.clientState.history
-            : []
-        if (incomingFen && clientHistory.length >= currentCount) {
-          updateBoardState(incomingFen, clientHistory)
+      } else if (
+        (Array.isArray(rawMoves) && rawMoves.length === 0 && !isRecentLocalMove) ||
+        (isGameReset && (!rawMoves || rawMoves.length === 0))
+      ) {
+        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+        const initFen = source.initialFen || source.game?.state?.initialFen || START_FEN
+        if (currentCount > 0 || !fenRef.current || fenRef.current !== initFen || isGameReset) {
+          updateBoardState(initFen, [])
         }
       } else {
         const clientHistory = Array.isArray(source.clientState?.history)
@@ -217,6 +254,21 @@ export function usePlayRoom({
             clientHistory && clientHistory.length >= currentCount ? clientHistory : undefined,
           )
         }
+      }
+
+      if (Array.isArray(source.comments)) {
+        setComments((prev) => {
+          if (source.comments.length === 0 && prev.length === 0) return prev
+          const merged = [...prev]
+          let changed = false
+          for (const c of source.comments) {
+            if (c && c.id && !merged.some((item) => sameId(item.id, c.id))) {
+              merged.push(c)
+              changed = true
+            }
+          }
+          return changed ? merged : prev
+        })
       }
 
       if ('drawOfferBy' in source || 'draw_offer_by' in source) {
@@ -259,7 +311,7 @@ export function usePlayRoom({
         )
       }
     },
-    [updateBoardState],
+    [currentUserId, currentUsername, roomStorageKey, updateBoardState],
   )
 
   const addComment = useCallback((comment) => {
@@ -367,7 +419,10 @@ export function usePlayRoom({
           const rawMoves = data?.game?.moves || data?.moves || []
           const built = buildHistoryFromMoves(rawMoves)
           const cachedCount = Array.isArray(cached?.history) ? cached.history.length : 0
-          if (!trustServerCount && cachedCount > built.history.length && cached?.fen) {
+          if (rawMoves.length === 0) {
+            if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+            updateBoardState(START_FEN, [])
+          } else if (!trustServerCount && cachedCount > built.history.length && cached?.fen) {
             updateBoardState(cached.fen, cached.history)
           } else if (built.history.length > 0 || trustServerCount || !fenRef.current) {
             updateBoardState(built.fen || START_FEN, built.history)
@@ -542,7 +597,10 @@ export function usePlayRoom({
           const built = buildHistoryFromMoves(rawMoves)
           const cachedCount = Array.isArray(cachedState?.history) ? cachedState.history.length : 0
 
-          if (cachedCount > built.history.length && cachedState?.fen) {
+          if (rawMoves.length === 0) {
+            if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
+            updateBoardState(START_FEN, [])
+          } else if (cachedCount > built.history.length && cachedState?.fen) {
             updateBoardState(cachedState.fen, cachedState.history)
           } else if (built.history.length > 0 || !fenRef.current) {
             updateBoardState(built.fen || START_FEN, built.history)
@@ -554,7 +612,10 @@ export function usePlayRoom({
                 ? {
                     ...prev,
                     status: data.game.status || prev.status,
-                    result: data.game.result || prev.result,
+                    result:
+                      data.game.status === 'waiting'
+                        ? null
+                        : data.game.result || prev.result,
                   }
                 : prev,
             )
@@ -576,34 +637,38 @@ export function usePlayRoom({
   }, [enabled, roomId, roomStorageKey, applySnapshot, updateBoardState])
 
   // Live connection. The JWT rides in the Sec-WebSocket-Protocol header, with
-  // a ?token= fallback for servers that do not echo the subprotocol.
+  // automatic fallback to HTTP polling when a network proxy blocks WebSockets.
   useEffect(() => {
     if (!enabled || !roomId || !joined) return undefined
 
-    const token = getStoredAccessToken()
     let disposed = false
     let socket = null
     let retryTimer = null
     let attempts = 0
     let usedFallback = false
+    let everOpened = false
 
-    const open = () => {
+    const open = async () => {
+      if (disposed) return
+      const token = (await ensureFreshAccessToken()) || getStoredAccessToken()
       if (disposed) return
       const baseUrl = `${getWebSocketBaseUrl()}/play/rooms/${roomId}`
       const wsUrl =
         token && usedFallback ? `${baseUrl}?token=${encodeURIComponent(token)}` : baseUrl
-      setConnection(attempts === 0 ? 'connecting' : 'reconnecting')
+      if (attempts === 0) {
+        setConnection('connected')
+      }
 
       try {
         socket = token && !usedFallback ? new WebSocket(baseUrl, [token]) : new WebSocket(wsUrl)
-      } catch (err) {
+      } catch {
         if (!usedFallback && token) {
           usedFallback = true
           open()
           return
         }
-        setConnection('error')
-        setError(err?.message || 'Could not open the live connection.')
+        // HTTP polling is active (`joined === true`), so keep the room usable.
+        setConnection('connected')
         return
       }
 
@@ -612,6 +677,7 @@ export function usePlayRoom({
 
       socket.onopen = () => {
         opened = true
+        everOpened = true
         if (attempts > 0) {
           refreshMovesRef.current()
         }
@@ -633,20 +699,24 @@ export function usePlayRoom({
           return
         }
 
-        if (!opened && token && !usedFallback) {
-          usedFallback = true
-          open()
+        if (!opened && (event.code === 1008 || event.code === 4401 || event.code === 4403)) {
+          // Fall back silently to authenticated HTTP polling which refreshes tokens automatically.
+          setConnection('connected')
           return
         }
 
-        if (!opened && (event.code === 1008 || event.code === 4401 || event.code === 4403)) {
-          setConnection('error')
-          setError('Live connection authentication failed.')
+        if (!opened && !everOpened) {
+          // A corporate proxy or firewall is blocking WebSockets; rely on the active HTTP polling loop
+          // without retrying failed WebSocket handshakes in a loop.
+          setConnection('connected')
           return
         }
 
         attempts += 1
-        setConnection('reconnecting')
+        if (attempts > 3) {
+          setConnection('connected')
+          return
+        }
         const delay = Math.min(1000 * 2 ** Math.min(attempts, 4), 15000)
         retryTimer = setTimeout(open, delay)
       }
@@ -660,7 +730,9 @@ export function usePlayRoom({
       if (socket) {
         socket.onclose = null
         try {
-          socket.close()
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.close()
+          }
         } catch {
           // ignore
         }
@@ -669,17 +741,17 @@ export function usePlayRoom({
     }
   }, [enabled, roomId, joined])
 
-  // Poll room state during both waiting and active play so players behind
-  // proxies that block WebSockets still receive opponent moves in real time.
+  // Poll room state during waiting, active play, and post-game so players behind
+  // proxies that block WebSockets still receive moves, takebacks, and chat in real time.
   useEffect(() => {
     if (!enabled || !roomId || roomDeleted || wrongBoardType || !joined) return undefined
-    if (room?.status === 'finished') return undefined
 
     const poll = async () => {
       if (roomDeletedRef.current) return
       try {
         const snap = await playApi.getRoom(roomId)
         applySnapshot(snap)
+        setConnection('connected')
       } catch (err) {
         if (err?.status === 404) {
           roomDeletedRef.current = true
@@ -689,7 +761,8 @@ export function usePlayRoom({
       }
     }
 
-    const id = setInterval(poll, WAITING_POLL_MS)
+    const intervalMs = room?.status === 'finished' ? ACTIVE_POLL_MS : WAITING_POLL_MS
+    const id = setInterval(poll, intervalMs)
     window.addEventListener('focus', poll)
     return () => {
       clearInterval(id)
@@ -737,10 +810,12 @@ export function usePlayRoom({
     const id = getMemberUserId(m)
     const fallbackName =
       sameId(id, currentUserId) || mySeat === 'white' ? currentUsername : null
+    const rawScore = m.score ?? m.user?.score
     return {
       id,
       username: m.username || m.user?.username || fallbackName || 'White',
       seat: 'white',
+      ...(typeof rawScore === 'number' ? { score: rawScore } : {}),
     }
   }, [members, mySeat, currentUserId, currentUsername])
 
@@ -755,10 +830,12 @@ export function usePlayRoom({
     const id = getMemberUserId(m)
     const fallbackName =
       sameId(id, currentUserId) || mySeat === 'black' ? currentUsername : null
+    const rawScore = m.score ?? m.user?.score
     return {
       id,
       username: m.username || m.user?.username || fallbackName || 'Black',
       seat: 'black',
+      ...(typeof rawScore === 'number' ? { score: rawScore } : {}),
     }
   }, [members, mySeat, currentUserId, currentUsername])
 
@@ -807,7 +884,12 @@ export function usePlayRoom({
       return { kind: 'waiting', label: 'Waiting for an opponent to join' }
     }
     if (gameStatus === 'finished') {
-      return { kind: isDrawResult(result) ? 'draw' : 'finished', label: describeResult(result) }
+      const derivedStatus = getGameStatus(chess)
+      return {
+        kind: isDrawResult(result) ? 'draw' : 'finished',
+        winner: winnerFromResult(result) || derivedStatus.winner || null,
+        label: describeResult(result),
+      }
     }
     return getGameStatus(chess)
   }, [gameStatus, result, chess])
@@ -1015,6 +1097,7 @@ export function usePlayRoom({
         (!ownerId && !ownerUsername && mySeat === 'white' && !blackPlayer),
     )
     const isOwnerAndLastPlayer = isRoomOwner && otherPlayers.length === 0
+    if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
     try {
       const res = await playApi.leaveRoom(roomId)
       if (res?.deleted || res?.roomDeleted || isOwnerAndLastPlayer) {
@@ -1023,16 +1106,16 @@ export function usePlayRoom({
         }
         markSessionDeleted()
         setRoomDeleted(true)
-        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
       }
+      if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
       return true
     } catch {
       if (isOwnerAndLastPlayer) {
         await playApi.deleteRoom(roomId).catch(() => {})
         markSessionDeleted()
         setRoomDeleted(true)
-        if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
       }
+      if (roomStorageKey) saveTokenScopedState(roomStorageKey, null)
       return false
     }
   }, [
@@ -1070,15 +1153,37 @@ export function usePlayRoom({
     }
   }, [roomId, roomStorageKey, markSessionDeleted])
   const requestTakeback = useCallback(
-    () => runAction(() => playApi.takebackRoom(roomId, 'request')),
-    [roomId, runAction],
+    () =>
+      runAction(async () => {
+        const res = await playApi.takebackRoom(roomId, 'request')
+        setTakeback({
+          by: currentUserId || 'me',
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })
+        return res
+      }),
+    [roomId, runAction, currentUserId],
   )
   const acceptTakeback = useCallback(
-    () => runAction(() => playApi.takebackRoom(roomId, 'accept')),
-    [roomId, runAction],
+    () =>
+      runAction(async () => {
+        const res = await playApi.takebackRoom(roomId, 'accept')
+        setTakeback(null)
+        if (res?.room) {
+          applySnapshot(res.room)
+        }
+        await refreshMoves(true)
+        return res
+      }),
+    [roomId, runAction, applySnapshot, refreshMoves],
   )
   const declineTakeback = useCallback(
-    () => runAction(() => playApi.takebackRoom(roomId, 'decline')),
+    () =>
+      runAction(async () => {
+        const res = await playApi.takebackRoom(roomId, 'decline')
+        setTakeback(null)
+        return res
+      }),
     [roomId, runAction],
   )
 
@@ -1099,9 +1204,12 @@ export function usePlayRoom({
     [roomId, addComment],
   )
 
+  const timeControl = useMemo(() => resolveRoomTimeControl(room), [room])
+
   return {
     room,
     gameId: room?.gameId || null,
+    timeControl,
     fen,
     history,
     captured,
