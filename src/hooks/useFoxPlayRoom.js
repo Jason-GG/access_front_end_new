@@ -9,6 +9,7 @@ import {
   loadTokenScopedState,
   saveTokenScopedState,
 } from '../services/request'
+import { playMoveSound } from '../services/soundService'
 import { STORAGE_KEYS, resolveRoomTimeControl } from '../utils/constants'
 
 const WAITING_POLL_MS = 1500
@@ -298,14 +299,40 @@ export function useFoxPlayRoom({
   const gameIdRef = useRef(null)
   const fenRef = useRef(fen)
   const historyCountRef = useRef(history.length)
+  const hydratedRef = useRef(false)
+  const lastSoundSigRef = useRef(null)
   const handleMessageRef = useRef(() => {})
   const refreshMovesRef = useRef(() => {})
 
   const syncFromEngine = useCallback(() => {
     const engine = engineRef.current
     if (!engine) return
+    const prevCount = historyCountRef.current
     const nextFen = typeof engine.fen === 'function' ? engine.fen() : null
     const nextHistory = typeof engine.history === 'function' ? [...engine.history()] : []
+    const nextLen = nextHistory.length
+    const nextLast = nextLen > 0 ? nextHistory[nextLen - 1] : null
+    const nextSig = nextLast
+      ? `${nextLen}:${nextLast.from || ''}:${nextLast.to || ''}:${nextLast.san || ''}`
+      : null
+
+    if (!hydratedRef.current) {
+      lastSoundSigRef.current = nextSig
+    } else if (nextLen <= 0) {
+      lastSoundSigRef.current = null
+    } else if (nextLen > prevCount && nextSig !== lastSoundSigRef.current) {
+      lastSoundSigRef.current = nextSig
+      playMoveSound(nextLast, {
+        signature: `foxroom:${roomId || ''}:${nextSig}`,
+        inCheck: typeof engine.inCheck === 'function' ? engine.inCheck() : false,
+        isCheckmate: typeof engine.isCheckmate === 'function' ? engine.isCheckmate() : false,
+        isStalemate: typeof engine.isStalemate === 'function' ? engine.isStalemate() : false,
+        isGameOver: typeof engine.isGameOver === 'function' ? engine.isGameOver() : false,
+      })
+    } else if (nextLen <= prevCount) {
+      lastSoundSigRef.current = nextSig
+    }
+
     const nextCaptured = {
       white: engine.captured?.w || [],
       black: engine.captured?.b || [],
@@ -321,7 +348,7 @@ export function useFoxPlayRoom({
     if (changed && roomStorageKey && isValidFoxFen(nextFen)) {
       saveTokenScopedState(roomStorageKey, buildFoxClientState(engine))
     }
-  }, [roomStorageKey])
+  }, [roomId, roomStorageKey])
 
   const applySnapshot = useCallback((snap) => {
     if (!snap || typeof snap !== 'object') return
@@ -800,6 +827,7 @@ export function useFoxPlayRoom({
     }
 
     let active = true
+    hydratedRef.current = false
     setLoading(true)
     setError(null)
     setWrongBoardType(null)
@@ -885,7 +913,10 @@ export function useFoxPlayRoom({
       } catch (err) {
         if (active) setError(err?.message || 'Unable to join this Fox Chess room.')
       } finally {
-        if (active) setLoading(false)
+        if (active) {
+          hydratedRef.current = true
+          setLoading(false)
+        }
       }
     })()
 

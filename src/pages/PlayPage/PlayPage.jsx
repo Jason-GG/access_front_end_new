@@ -17,6 +17,11 @@ import { useAuth } from '../../hooks/useAuth'
 import { useChessGame } from '../../hooks/useChessGame'
 import { usePlayRoom } from '../../hooks/usePlayRoom'
 import { loadTokenScopedState, saveTokenScopedState } from '../../services/request'
+import {
+  isSoundMuted,
+  subscribeSoundMuted,
+  toggleSoundMuted,
+} from '../../services/soundService'
 import styles from './PlayPage.module.css'
 
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
@@ -37,6 +42,22 @@ function PlayerRow({ label, name, you, active, score }) {
         {you ? <span className={styles.youTag}>you</span> : null}
       </span>
     </div>
+  )
+}
+
+function SoundToggleButton() {
+  const [muted, setMuted] = useState(() => isSoundMuted())
+  useEffect(() => subscribeSoundMuted(setMuted), [])
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={toggleSoundMuted}
+      title={muted ? 'Unmute move sounds' : 'Mute move sounds'}
+      aria-label={muted ? 'Unmute move sounds' : 'Mute move sounds'}
+    >
+      {muted ? '🔇 Sound off' : '🔊 Sound on'}
+    </Button>
   )
 }
 
@@ -412,6 +433,7 @@ function RoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
+              <SoundToggleButton />
               {game.canDeleteRoom && (
                 <Button
                   variant="danger"
@@ -758,6 +780,7 @@ function ChessPracticeView({ playMode, setPlayMode }) {
         <Button variant="secondary" size="sm" onClick={reset}>
           New game
         </Button>
+        <SoundToggleButton />
       </div>
 
       <div className={styles.grid}>

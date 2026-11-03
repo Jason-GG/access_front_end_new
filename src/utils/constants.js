@@ -23,6 +23,7 @@ export const STORAGE_KEYS = {
   foxPracticeState: 'access-chess:fox-practice-state',
   chessPracticeState: 'access-chess:chess-practice-state',
   roomStatePrefix: 'access-chess:room-state:',
+  soundMuted: 'access-chess:sound-muted',
 }
 
 export const GAME = {

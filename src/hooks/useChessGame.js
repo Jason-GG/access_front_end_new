@@ -7,6 +7,7 @@ import {
   makeMove,
   pickBotMove,
 } from '../services/chessService'
+import { playMoveSound } from '../services/soundService'
 import {
   getStoredAccessToken,
   loadTokenScopedState,
@@ -162,6 +163,12 @@ export function useChessGame({
             promotion: botMove.promotion || 'q',
           })
           if (executed) {
+            playMoveSound(executed, {
+              inCheck: game.inCheck(),
+              isCheckmate: game.isCheckmate(),
+              isStalemate: game.isStalemate(),
+              isGameOver: game.isGameOver(),
+            })
             recordPracticeMoveToDb(
               executed,
               game.fen(),
@@ -189,6 +196,13 @@ export function useChessGame({
 
       const move = makeMove(game, sourceSquare, targetSquare)
       if (!move) return false
+
+      playMoveSound(move, {
+        inCheck: game.inCheck(),
+        isCheckmate: game.isCheckmate(),
+        isStalemate: game.isStalemate(),
+        isGameOver: game.isGameOver(),
+      })
 
       recordPracticeMoveToDb(
         move,

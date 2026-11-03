@@ -15,6 +15,7 @@ import {
 } from '../../data/pieceRulesData'
 import { ROUTES } from '../../utils/constants'
 import { cx } from '../../utils/helpers'
+import { playMoveSound } from '../../services/soundService'
 import styles from './LearnPage.module.css'
 
 const GLYPHS = ['♟', '♞', '♜', '♝', '♛', '♘']
@@ -293,6 +294,14 @@ function InteractivePieceLab({ selectedPieceId, onSelectPiece, labRef }) {
 
       setAutoPlay(false)
       const prevSquare = customPos ? customPos.current : currentPos
+      playMoveSound(
+        {
+          from: toSquare10(prevSquare.row, prevSquare.col),
+          to: toSquare10(r, c),
+          captured: candidate.capture,
+        },
+        { signature: `learn:${prevSquare.row},${prevSquare.col}->${r},${c}:${Date.now()}` },
+      )
       const remainingOthers = activeOthers.filter((o) => !(o.row === r && o.col === c))
       setCustomPos({
         from: prevSquare,

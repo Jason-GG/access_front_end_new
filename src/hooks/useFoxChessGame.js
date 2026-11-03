@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FoxChess, pickFoxBotMove } from '../services/foxChessEngine'
+import { playMoveSound } from '../services/soundService'
 import {
   getStoredAccessToken,
   loadTokenScopedState,
@@ -149,6 +150,12 @@ export function useFoxChessGame({
             promotion: botMove.promotion || 'q',
           })
           if (executed) {
+            playMoveSound(executed, {
+              inCheck: game.inCheck(),
+              isCheckmate: game.isCheckmate(),
+              isStalemate: game.isStalemate(),
+              isGameOver: game.isGameOver(),
+            })
             recordPracticeMoveToDb(
               executed,
               game.fen(),
@@ -181,6 +188,13 @@ export function useFoxChessGame({
       })
 
       if (!executed) return false
+
+      playMoveSound(executed, {
+        inCheck: game.inCheck(),
+        isCheckmate: game.isCheckmate(),
+        isStalemate: game.isStalemate(),
+        isGameOver: game.isGameOver(),
+      })
 
       recordPracticeMoveToDb(
         executed,

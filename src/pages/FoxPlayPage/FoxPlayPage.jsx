@@ -18,6 +18,11 @@ import { useFoxPlayRoom } from '../../hooks/useFoxPlayRoom'
 import { FoxChess } from '../../services/foxChessEngine'
 import { loadTokenScopedState, saveTokenScopedState } from '../../services/request'
 import {
+  isSoundMuted,
+  subscribeSoundMuted,
+  toggleSoundMuted,
+} from '../../services/soundService'
+import {
   DEFAULT_TIME_CONTROL,
   ROUTES,
   STORAGE_KEYS,
@@ -42,6 +47,22 @@ function PlayerRow({ label, name, you, active, score }) {
         {you ? <span className={styles.youTag}>you</span> : null}
       </span>
     </div>
+  )
+}
+
+function SoundToggleButton() {
+  const [muted, setMuted] = useState(() => isSoundMuted())
+  useEffect(() => subscribeSoundMuted(setMuted), [])
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={toggleSoundMuted}
+      title={muted ? 'Unmute move sounds' : 'Mute move sounds'}
+      aria-label={muted ? 'Unmute move sounds' : 'Mute move sounds'}
+    >
+      {muted ? '🔇 Sound off' : '🔊 Sound on'}
+    </Button>
   )
 }
 
@@ -438,6 +459,7 @@ function FoxRoomView({ roomId, onLeave }) {
               <Button variant="secondary" size="sm" onClick={copyInvite}>
                 {copied ? 'Copied!' : 'Copy invite link'}
               </Button>
+              <SoundToggleButton />
               {game.canDeleteRoom && (
                 <Button
                   variant="danger"
@@ -786,6 +808,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
         <Button variant="secondary" size="sm" onClick={reset}>
           New game
         </Button>
+        <SoundToggleButton />
       </div>
 
       <div className={styles.grid}>

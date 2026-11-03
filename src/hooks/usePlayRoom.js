@@ -16,6 +16,7 @@ import {
   loadTokenScopedState,
   saveTokenScopedState,
 } from '../services/request'
+import { playMoveSound } from '../services/soundService'
 import { STORAGE_KEYS, resolveRoomTimeControl } from '../utils/constants'
 
 const WAITING_POLL_MS = 1500
@@ -94,12 +95,15 @@ export function usePlayRoom({
   const pendingMoveRef = useRef(false)
   const lastMoveSentAtRef = useRef(0)
   const gameIdRef = useRef(null)
+  const hydratedRef = useRef(false)
+  const lastSoundSigRef = useRef(null)
   const handleMessageRef = useRef(() => {})
   const refreshMovesRef = useRef(() => {})
 
   const updateBoardState = useCallback(
     (nextFen, nextHistory) => {
       let changed = false
+      const prevLen = Array.isArray(historyRef.current) ? historyRef.current.length : 0
       if (nextFen !== undefined && nextFen !== fenRef.current) {
         fenRef.current = nextFen
         setFenState(nextFen)
@@ -110,6 +114,37 @@ export function usePlayRoom({
         const nextLen = Array.isArray(nextHistory) ? nextHistory.length : -1
         const curLast = curLen > 0 ? historyRef.current[curLen - 1] : null
         const nextLast = nextLen > 0 ? nextHistory[nextLen - 1] : null
+        const nextSig = nextLast
+          ? `${nextLen}:${nextLast.from || ''}:${nextLast.to || ''}:${nextLast.san || ''}`
+          : null
+
+        if (!hydratedRef.current) {
+          lastSoundSigRef.current = nextSig
+        } else if (nextLen <= 0) {
+          lastSoundSigRef.current = null
+        } else if (nextLen > prevLen && nextSig !== lastSoundSigRef.current) {
+          lastSoundSigRef.current = nextSig
+          let moveCtx = { signature: `chessroom:${roomId || ''}:${nextSig}` }
+          const fenToProbe = nextFen || fenRef.current
+          if (fenToProbe) {
+            try {
+              const probe = new Chess(fenToProbe)
+              moveCtx = {
+                ...moveCtx,
+                inCheck: probe.inCheck(),
+                isCheckmate: probe.isCheckmate(),
+                isStalemate: probe.isStalemate(),
+                isGameOver: probe.isGameOver(),
+              }
+            } catch {
+              // ignore
+            }
+          }
+          playMoveSound(nextLast, moveCtx)
+        } else if (nextLen <= prevLen) {
+          lastSoundSigRef.current = nextSig
+        }
+
         const histChanged =
           curLen !== nextLen ||
           curLast?.san !== nextLast?.san ||
@@ -132,7 +167,7 @@ export function usePlayRoom({
         })
       }
     },
-    [roomStorageKey],
+    [roomId, roomStorageKey],
   )
 
   const applySnapshot = useCallback(
@@ -557,6 +592,7 @@ export function usePlayRoom({
     }
 
     let active = true
+    hydratedRef.current = false
     setLoading(true)
     setError(null)
     setWrongBoardType(null)
@@ -627,7 +663,10 @@ export function usePlayRoom({
       } catch (err) {
         if (active) setError(err?.message || 'Unable to join this room.')
       } finally {
-        if (active) setLoading(false)
+        if (active) {
+          hydratedRef.current = true
+          setLoading(false)
+        }
       }
     })()
 
