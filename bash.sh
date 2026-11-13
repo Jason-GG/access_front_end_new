@@ -1,29 +1,30 @@
 #!/bin/bash
+set -euo pipefail
 
-# ssh root@101.37.105.86
+cd "$(dirname "$0")"
 
-# scp /Users/sjian/Documents/projects/element-plus-admin/dist.zip root@101.37.105.86:/root/
+REMOTE_HOST="${REMOTE_HOST:-root@35.212.204.214}"
+
 npm run build
-rm -rf dist.zip
+
+rm -f dist.zip
 zip -r dist.zip dist/*
-scp dist.zip root@139.159.186.80:/root/
-ssh root@139.159.186.80 << 'EOF'
+scp dist.zip "${REMOTE_HOST}:/root/"
+
+ssh "${REMOTE_HOST}" << 'EOF'
+set -euo pipefail
 cd /root/
 rm -rf /root/dist
-unzip -o dist.zip -d /root/
+unzip -o /root/dist.zip -d /root/
+mkdir -p /usr/share/nginx/html1 /var/www/html
 rm -rf /usr/share/nginx/html1/*
 cp -r /root/dist /usr/share/nginx/html1/
 rm -rf /var/www/html/*
 cp -r /root/dist/* /var/www/html/
-rm -rf /root/dist
+rm -rf /root/dist /root/dist.zip
+nginx -t
+systemctl reload nginx
 EOF
 
-
-
-
-# 方案二：
-# 同时在node_modules/mockjs/src/xhr/xhr.js 文件的第216行和node_modules/mockjs/dist/mock.js文件的大约8312行处添加以下代码
-
-# MockXMLHttpRequest.prototype.upload = xhr.upload;
-
-# 给MockXMLHttpRequest对象添加一个原生xhr.upload方法。
+rm -f dist.zip
+echo "Frontend deployed successfully to ${REMOTE_HOST}."

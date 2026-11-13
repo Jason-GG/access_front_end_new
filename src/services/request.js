@@ -13,7 +13,7 @@ function notifySessionUpdated() {
 }
 
 const DEV_HOST = 'https://achess-dev.wguan.dpdns.org'
-const PROD_HOST = 'http://139.159.186.80:3000'
+const PROD_HOST = 'http://35.212.204.214:3000'
 
 const isProd = import.meta.env.PROD || import.meta.env.MODE === 'production'
 const defaultRemoteHost = isProd ? PROD_HOST : DEV_HOST
@@ -32,7 +32,7 @@ export function getWebSocketBaseUrl() {
     return base.replace(/^http/i, 'ws')
   }
   if (import.meta.env.DEV) {
-    return isProd ? 'ws://139.159.186.80:3000' : 'wss://achess-dev.wguan.dpdns.org'
+    return isProd ? 'ws://35.212.204.214:3000' : 'wss://achess-dev.wguan.dpdns.org'
   }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}${base}`
