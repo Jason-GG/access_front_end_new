@@ -3,7 +3,15 @@ export function cx(...classes) {
 }
 
 export function handleFromEmail(email = '') {
-  return email.split('@')[0].toLowerCase() || 'guest'
+  return email.split('@')[0].toLowerCase() || 'user'
+}
+
+export function normalizeUserRole(role) {
+  return String(role || '').trim().toLowerCase() === 'admin' ? 'admin' : 'user'
+}
+
+export function isAdminUser(user) {
+  return Boolean(user && normalizeUserRole(user.role) === 'admin')
 }
 
 export function formatClock(totalSeconds) {

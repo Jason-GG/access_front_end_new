@@ -5,7 +5,7 @@ import { Button } from '../../components/common/Button'
 import { useAuth } from '../../hooks/useAuth'
 import * as authService from '../../services/authService'
 import { ROUTES } from '../../utils/constants'
-import { cx, formatDateTime } from '../../utils/helpers'
+import { cx, formatDateTime, isAdminUser, normalizeUserRole } from '../../utils/helpers'
 import styles from './ProfilePage.module.css'
 
 export function ProfilePage() {
@@ -164,7 +164,9 @@ export function ProfilePage() {
                 <p className="eyebrow">Member Profile</p>
                 <div className={styles.nameRow}>
                   <h1 className={styles.title}>{displayName}</h1>
-                  <span className={styles.roleBadge}>{displayUser.role || 'guest'}</span>
+                  <span className={styles.roleBadge}>
+                    {normalizeUserRole(displayUser.role)}
+                  </span>
                   {displayUser.emailVerifiedAt && (
                     <span className={styles.verifiedBadge}>✓ Verified</span>
                   )}
@@ -350,6 +352,15 @@ export function ProfilePage() {
                   <Button size="sm" variant="primary" onClick={() => navigate(ROUTES.foxPlay)}>
                     Play Fox Chess (10×10)
                   </Button>
+                  {isAdminUser(displayUser) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => navigate(ROUTES.adminUsers)}
+                    >
+                      Admin User Management
+                    </Button>
+                  )}
                 </div>
               </div>
 

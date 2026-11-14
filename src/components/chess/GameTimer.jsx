@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { GAME } from '../../utils/constants'
 import { cx, formatClock } from '../../utils/helpers'
 import styles from './GameTimer.module.css'
+
+const DEFAULT_CLOCK_MS = GAME.defaultTimeSeconds * 1000
 
 function Clock({ label, seconds, active }) {
   return (
@@ -13,38 +15,111 @@ function Clock({ label, seconds, active }) {
   )
 }
 
-export function GameTimer({ turn, running, resetKey, times }) {
+export function GameTimer({
+  turn,
+  running,
+  resetKey,
+  times,
+  whiteLabel = 'White',
+  blackLabel = 'Black',
+  onTimeout,
+}) {
   const controlled = Boolean(times && typeof times.white === 'number')
-  const [white, setWhite] = useState(GAME.defaultTimeSeconds)
-  const [black, setBlack] = useState(GAME.defaultTimeSeconds)
+
+  const clocksRef = useRef({
+    white: DEFAULT_CLOCK_MS,
+    black: DEFAULT_CLOCK_MS,
+    activeTurn: turn || 'w',
+    lastTickAt: null,
+    timedOut: false,
+  })
+  const [uncontrolledClocks, setUncontrolledClocks] = useState({
+    white: DEFAULT_CLOCK_MS,
+    black: DEFAULT_CLOCK_MS,
+  })
+  const onTimeoutRef = useRef(onTimeout)
+  onTimeoutRef.current = onTimeout
+  const latestTurnRef = useRef(turn || 'w')
+  latestTurnRef.current = turn || 'w'
+  const latestRunningRef = useRef(Boolean(running))
+  latestRunningRef.current = Boolean(running)
+
+  const flushElapsed = useCallback((now = Date.now(), nextTurn) => {
+    const state = clocksRef.current
+    if (state.lastTickAt != null && !state.timedOut) {
+      const elapsed = Math.max(0, now - state.lastTickAt)
+      if (elapsed > 0) {
+        if (state.activeTurn === 'w') {
+          state.white = Math.max(0, state.white - elapsed)
+        } else {
+          state.black = Math.max(0, state.black - elapsed)
+        }
+      }
+      state.lastTickAt = now
+    }
+    if (nextTurn) {
+      state.activeTurn = nextTurn
+    }
+    setUncontrolledClocks({ white: state.white, black: state.black })
+
+    if (!state.timedOut && (state.white <= 0 || state.black <= 0)) {
+      state.timedOut = true
+      state.lastTickAt = null
+      const loser = state.white <= 0 ? 'w' : 'b'
+      onTimeoutRef.current?.(loser)
+    }
+  }, [])
 
   useEffect(() => {
     if (controlled) return
-    setWhite(GAME.defaultTimeSeconds)
-    setBlack(GAME.defaultTimeSeconds)
+    clocksRef.current = {
+      white: DEFAULT_CLOCK_MS,
+      black: DEFAULT_CLOCK_MS,
+      activeTurn: latestTurnRef.current,
+      lastTickAt: latestRunningRef.current ? Date.now() : null,
+      timedOut: false,
+    }
+    setUncontrolledClocks({ white: DEFAULT_CLOCK_MS, black: DEFAULT_CLOCK_MS })
   }, [resetKey, controlled])
 
+  // Flush exact elapsed milliseconds for the previous side whenever the active turn flips
   useEffect(() => {
-    if (controlled || !running) return undefined
+    if (controlled) return
+    const nextTurn = turn || 'w'
+    if (clocksRef.current.activeTurn !== nextTurn) {
+      flushElapsed(Date.now(), nextTurn)
+    }
+  }, [turn, controlled, flushElapsed])
+
+  useEffect(() => {
+    if (controlled) return undefined
+    if (!running) {
+      flushElapsed(Date.now())
+      clocksRef.current.lastTickAt = null
+      return undefined
+    }
+
+    if (clocksRef.current.lastTickAt == null && !clocksRef.current.timedOut) {
+      clocksRef.current.lastTickAt = Date.now()
+    }
+    clocksRef.current.activeTurn = turn || 'w'
 
     const id = setInterval(() => {
-      if (turn === 'w') {
-        setWhite((seconds) => Math.max(0, seconds - 1))
-      } else {
-        setBlack((seconds) => Math.max(0, seconds - 1))
-      }
-    }, 1000)
+      flushElapsed(Date.now())
+    }, 100)
 
     return () => clearInterval(id)
-  }, [controlled, running, turn, resetKey])
+  }, [controlled, running, turn, resetKey, flushElapsed])
 
-  const whiteSeconds = controlled ? Math.ceil(times.white / 1000) : white
-  const blackSeconds = controlled ? Math.ceil(times.black / 1000) : black
+  const whiteMs = controlled ? Math.max(0, times.white) : uncontrolledClocks.white
+  const blackMs = controlled ? Math.max(0, times.black) : uncontrolledClocks.black
+  const whiteSeconds = whiteMs <= 0 ? 0 : Math.ceil(whiteMs / 1000)
+  const blackSeconds = blackMs <= 0 ? 0 : Math.ceil(blackMs / 1000)
 
   return (
     <div className={styles.panel}>
-      <Clock label="White" seconds={whiteSeconds} active={running && turn === 'w'} />
-      <Clock label="Black" seconds={blackSeconds} active={running && turn === 'b'} />
+      <Clock label={whiteLabel} seconds={whiteSeconds} active={running && turn === 'w'} />
+      <Clock label={blackLabel} seconds={blackSeconds} active={running && turn === 'b'} />
     </div>
   )
 }

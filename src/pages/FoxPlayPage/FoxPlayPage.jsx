@@ -656,6 +656,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
     captured,
     status,
     turn,
+    displayClocks,
     isGameOver,
     isPlayerTurn,
     resetKey,
@@ -709,6 +710,7 @@ function FoxPracticeView({ playMode, setPlayMode }) {
   const statusText = (() => {
     if (status.kind === 'checkmate') return status.label
     if (status.kind === 'draw') return status.label
+    if (status.kind === 'timeout') return status.label
     if (status.kind === 'check') return 'Check — King is threatened!'
     if (playMode === 'bot') {
       return isPlayerTurn
@@ -825,7 +827,26 @@ function FoxPracticeView({ playMode, setPlayMode }) {
         </div>
 
         <aside className={styles.sideCol}>
-          <GameTimer turn={turn} running={!isGameOver} resetKey={resetKey} />
+          <GameTimer
+            turn={turn}
+            running={!isGameOver}
+            resetKey={resetKey}
+            times={displayClocks}
+            whiteLabel={
+              playMode === 'bot'
+                ? orientation === 'white'
+                  ? 'White (You)'
+                  : 'White (Bot)'
+                : 'White'
+            }
+            blackLabel={
+              playMode === 'bot'
+                ? orientation === 'black'
+                  ? 'Black (You)'
+                  : 'Black (Bot)'
+                : 'Black'
+            }
+          />
 
           <div className={styles.players}>
             {playMode === 'bot' ? (

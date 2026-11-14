@@ -7,11 +7,12 @@ import {
   saveTokenScopedState,
 } from '../services/request'
 import * as playApi from '../api/playApi'
-import { STORAGE_KEYS } from '../utils/constants'
+import { GAME, STORAGE_KEYS, getBotThinkDelayMs } from '../utils/constants'
 
-function createInitialFoxPracticeGame() {
+const DEFAULT_CLOCK_MS = GAME.defaultTimeSeconds * 1000
+
+function createInitialFoxPracticeGame(saved) {
   const engine = new FoxChess()
-  const saved = loadTokenScopedState(STORAGE_KEYS.foxPracticeState)
   if (!saved) return engine
 
   if (Array.isArray(saved.history) && saved.history.length > 0) {
@@ -40,22 +41,66 @@ function createInitialFoxPracticeGame() {
   return engine
 }
 
+function resolveInitialClocks(saved, isBoardGameOver) {
+  const savedTimeout = saved?.timeoutLoser === 'w' || saved?.timeoutLoser === 'b' ? saved.timeoutLoser : null
+  const rawW = saved?.clocks?.white
+  const rawB = saved?.clocks?.black
+
+  if (isBoardGameOver || savedTimeout) {
+    return {
+      white: typeof rawW === 'number' ? Math.max(0, rawW) : DEFAULT_CLOCK_MS,
+      black: typeof rawB === 'number' ? Math.max(0, rawB) : DEFAULT_CLOCK_MS,
+      timeoutLoser: savedTimeout,
+    }
+  }
+
+  return {
+    white: typeof rawW === 'number' && rawW > 0 ? rawW : DEFAULT_CLOCK_MS,
+    black: typeof rawB === 'number' && rawB > 0 ? rawB : DEFAULT_CLOCK_MS,
+    timeoutLoser: null,
+  }
+}
+
 export function useFoxChessGame({
   playMode = 'bot', // 'bot' | 'pass'
   orientation = 'white',
   difficulty = 'medium',
-  botDelayMs = 700,
+  botDelayMs,
 } = {}) {
-  const gameRef = useRef(null)
-  if (!gameRef.current) {
-    gameRef.current = createInitialFoxPracticeGame()
+  const initialSavedRef = useRef(undefined)
+  if (initialSavedRef.current === undefined) {
+    initialSavedRef.current = loadTokenScopedState(STORAGE_KEYS.foxPracticeState)
   }
 
-  const botTimerRef = useRef(null)
-  const dbGameIdRef = useRef(
-    loadTokenScopedState(STORAGE_KEYS.foxPracticeState)?.dbGameId || null,
+  const gameRef = useRef(null)
+  if (!gameRef.current) {
+    gameRef.current = createInitialFoxPracticeGame(initialSavedRef.current)
+  }
+
+  const initClockData = resolveInitialClocks(
+    initialSavedRef.current,
+    gameRef.current.isGameOver(),
   )
+
+  const botTimerRef = useRef(null)
+  const dbGameIdRef = useRef(initialSavedRef.current?.dbGameId || null)
   const creatingDbGameRef = useRef(null)
+
+  const timeoutLoserRef = useRef(initClockData.timeoutLoser)
+  const [timeoutLoser, setTimeoutLoser] = useState(initClockData.timeoutLoser)
+
+  const clockStateRef = useRef({
+    white: initClockData.white,
+    black: initClockData.black,
+    activeTurn: gameRef.current.turn(),
+    lastTickAt:
+      gameRef.current.isGameOver() || initClockData.timeoutLoser ? null : Date.now(),
+  })
+  const [displayClocks, setDisplayClocks] = useState(() => ({
+    white: initClockData.white,
+    black: initClockData.black,
+  }))
+
   const [resetKey, setResetKey] = useState(0)
   const [, setTick] = useState(0) // Force re-render on state mutation
 
@@ -113,12 +158,15 @@ export function useFoxChessGame({
         piece: m.piece,
         captured: m.captured,
       }))
+      const st = clockStateRef.current
       saveTokenScopedState(STORAGE_KEYS.foxPracticeState, {
         playMode: mode,
         orientation: orient,
         difficulty: diff,
         dbGameId: dbGameIdRef.current,
         fen: game.fen(),
+        clocks: { white: st.white, black: st.black },
+        timeoutLoser: timeoutLoserRef.current,
         history: verboseHistory,
         captured: { white: game.captured.w, black: game.captured.b },
       })
@@ -126,21 +174,102 @@ export function useFoxChessGame({
     [playMode, orientation, difficulty],
   )
 
+  const advanceClockToNow = useCallback(
+    (nextTurnOverride) => {
+      const now = Date.now()
+      const st = clockStateRef.current
+      const game = gameRef.current
+      const alreadyOver = game.isGameOver() || Boolean(timeoutLoserRef.current)
+
+      if (!alreadyOver && st.lastTickAt != null) {
+        const elapsed = Math.max(0, now - st.lastTickAt)
+        if (elapsed > 0) {
+          if (st.activeTurn === 'w') {
+            st.white = Math.max(0, st.white - elapsed)
+          } else {
+            st.black = Math.max(0, st.black - elapsed)
+          }
+        }
+      }
+
+      if (nextTurnOverride) {
+        st.activeTurn = nextTurnOverride
+      }
+
+      if (!alreadyOver && (st.white <= 0 || st.black <= 0)) {
+        const loser = st.white <= 0 ? 'w' : 'b'
+        timeoutLoserRef.current = loser
+        st.lastTickAt = null
+        clearTimeout(botTimerRef.current)
+        setTimeoutLoser(loser)
+        setDisplayClocks({ white: st.white, black: st.black })
+        persistPracticeState()
+        return
+      }
+
+      st.lastTickAt = game.isGameOver() || timeoutLoserRef.current ? null : now
+      setDisplayClocks({ white: st.white, black: st.black })
+    },
+    [persistPracticeState],
+  )
+
   const sync = useCallback(() => {
+    const game = gameRef.current
+    advanceClockToNow(game.turn())
     persistPracticeState()
     setTick((t) => t + 1)
-  }, [persistPracticeState])
+  }, [advanceClockToNow, persistPracticeState])
 
   useEffect(() => {
     persistPracticeState(playMode, orientation, difficulty)
   }, [playMode, orientation, difficulty, persistPracticeState])
 
+  const currentTurn = gameRef.current.turn()
+  const historyLen = gameRef.current.history().length
+  const isGameOver = gameRef.current.isGameOver() || Boolean(timeoutLoser)
+
+  // Continuous 100ms live clock ticker for both Player and Computer turns
+  useEffect(() => {
+    if (isGameOver) {
+      clockStateRef.current.lastTickAt = null
+      return undefined
+    }
+    clockStateRef.current.activeTurn = currentTurn
+    if (clockStateRef.current.lastTickAt == null) {
+      clockStateRef.current.lastTickAt = Date.now()
+    }
+
+    let ticks = 0
+    const id = setInterval(() => {
+      advanceClockToNow()
+      ticks += 1
+      if (ticks % 20 === 0) {
+        persistPracticeState()
+      }
+    }, 100)
+
+    return () => {
+      clearInterval(id)
+      advanceClockToNow()
+      persistPracticeState()
+    }
+  }, [isGameOver, currentTurn, advanceClockToNow, persistPracticeState])
+
   const scheduleBotMove = useCallback(
-    (delay = botDelayMs) => {
+    (explicitDelay) => {
       clearTimeout(botTimerRef.current)
+      const delay =
+        typeof explicitDelay === 'number'
+          ? explicitDelay
+          : typeof botDelayMs === 'number'
+            ? botDelayMs
+            : getBotThinkDelayMs(difficulty)
+
       botTimerRef.current = setTimeout(() => {
         const game = gameRef.current
-        if (game.isGameOver()) return
+        if (game.isGameOver() || timeoutLoserRef.current) return
+        advanceClockToNow()
+        if (timeoutLoserRef.current) return
 
         const botMove = pickFoxBotMove(game, difficulty)
         if (botMove) {
@@ -173,13 +302,13 @@ export function useFoxChessGame({
         sync()
       }, delay)
     },
-    [botDelayMs, difficulty, recordPracticeMoveToDb, sync],
+    [botDelayMs, difficulty, advanceClockToNow, recordPracticeMoveToDb, sync],
   )
 
   const handleMove = useCallback(
     (sourceSquare, targetSquare, promotion = 'q') => {
       const game = gameRef.current
-      if (game.isGameOver()) return false
+      if (game.isGameOver() || timeoutLoserRef.current) return false
 
       const executed = game.move({
         from: sourceSquare,
@@ -209,24 +338,17 @@ export function useFoxChessGame({
             : null,
       )
       sync()
-
-      // If playing against bot, bot responds if it's black's turn
-      const botColor = orientation === 'white' ? 'b' : 'w'
-      if (playMode === 'bot' && !game.isGameOver() && game.turn() === botColor) {
-        scheduleBotMove()
-      }
-
       return true
     },
-    [playMode, orientation, recordPracticeMoveToDb, scheduleBotMove, sync],
+    [recordPracticeMoveToDb, sync],
   )
 
   const undo = useCallback(() => {
     const game = gameRef.current
     clearTimeout(botTimerRef.current)
+    if (timeoutLoserRef.current) return
 
     if (playMode === 'bot') {
-      // Revert bot's move as well so player gets their turn back
       const history = game.history({ verbose: true })
       const botColor = orientation === 'white' ? 'b' : 'w'
       if (history.length > 0 && history[history.length - 1].color === botColor) {
@@ -242,37 +364,42 @@ export function useFoxChessGame({
     clearTimeout(botTimerRef.current)
     dbGameIdRef.current = null
     creatingDbGameRef.current = null
+    timeoutLoserRef.current = null
+    setTimeoutLoser(null)
     gameRef.current = new FoxChess()
+    clockStateRef.current = {
+      white: DEFAULT_CLOCK_MS,
+      black: DEFAULT_CLOCK_MS,
+      activeTurn: 'w',
+      lastTickAt: Date.now(),
+    }
+    setDisplayClocks({ white: DEFAULT_CLOCK_MS, black: DEFAULT_CLOCK_MS })
     setResetKey((k) => k + 1)
     sync()
+  }, [sync])
 
-    // If bot plays white, it opens first
-    if (playMode === 'bot' && orientation === 'black') {
-      scheduleBotMove(botDelayMs)
-    }
-  }, [playMode, orientation, botDelayMs, scheduleBotMove, sync])
-
-  // Bot moves whenever it is the bot's turn (opening as White or resuming after page refresh)
-  const currentTurn = gameRef.current.turn()
-  const historyLen = gameRef.current.history().length
+  // Bot moves whenever it is the bot's turn (opening as White, answering Player, or after refresh)
   useEffect(() => {
     const botColor = orientation === 'white' ? 'b' : 'w'
-    if (
-      playMode === 'bot' &&
-      !gameRef.current.isGameOver() &&
-      currentTurn === botColor
-    ) {
-      scheduleBotMove(botDelayMs)
+    if (playMode === 'bot' && !isGameOver && currentTurn === botColor) {
+      scheduleBotMove()
     }
-  }, [playMode, orientation, currentTurn, historyLen, botDelayMs, scheduleBotMove])
-
-  useEffect(() => {
     return () => clearTimeout(botTimerRef.current)
-  }, [])
+  }, [playMode, orientation, currentTurn, historyLen, isGameOver, scheduleBotMove])
 
   const game = gameRef.current
   const history = game.history({ verbose: true })
-  const status = game.getStatus()
+  const boardStatus = game.getStatus()
+  const status = timeoutLoser
+    ? {
+        kind: 'timeout',
+        winner: timeoutLoser === 'w' ? 'black' : 'white',
+        label:
+          timeoutLoser === 'w'
+            ? 'White ran out of time — Black wins'
+            : 'Black ran out of time — White wins',
+      }
+    : boardStatus
   const isPlayerTurn = playMode === 'bot' ? game.turn() === orientation[0] : true
 
   return {
@@ -281,15 +408,17 @@ export function useFoxChessGame({
     captured: { white: game.captured.w, black: game.captured.b },
     status,
     turn: game.turn(),
-    isGameOver: game.isGameOver(),
+    displayClocks,
+    isGameOver,
     isPlayerTurn,
     resetKey,
     makeMove: handleMove,
     undo,
     reset,
     canUndo:
-      playMode === 'bot'
+      !isGameOver &&
+      (playMode === 'bot'
         ? history.some((m) => m.color === orientation[0])
-        : history.length > 0,
+        : history.length > 0),
   }
 }

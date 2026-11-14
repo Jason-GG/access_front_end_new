@@ -1,6 +1,6 @@
 import * as authApi from '../api/authApi'
 import { STORAGE_KEYS } from '../utils/constants'
-import { handleFromEmail } from '../utils/helpers'
+import { handleFromEmail, normalizeUserRole } from '../utils/helpers'
 import {
   clearStoredTokens,
   getStoredAccessToken,
@@ -21,7 +21,7 @@ function decodeUserFromJwt(token) {
     const id = payload.id || payload.sub || payload.userId || null
     const username = payload.username || payload.preferred_username || payload.name || ''
     const email = payload.email || ''
-    const role = payload.role || undefined
+    const role = payload.role ? normalizeUserRole(payload.role) : undefined
     if (!id && !username && !email) return null
     return {
       ...(id ? { id } : {}),
@@ -96,11 +96,16 @@ function normalizeUser(rawUser, extra = {}) {
       ? Math.floor(parsedScore)
       : DEFAULT_USER_SCORE
 
+  const resolvedRole = normalizeUserRole(
+    unwrapped?.role ?? mergedSource.role ?? extra?.role ?? jwtUser.role,
+  )
+
   return {
     ...mergedSource,
     ...(id ? { id } : {}),
     email,
     username,
+    role: resolvedRole,
     handle: username || (email ? handleFromEmail(email) : 'Player'),
     score,
   }

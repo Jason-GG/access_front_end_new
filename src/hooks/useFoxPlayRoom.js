@@ -1146,8 +1146,7 @@ export function useFoxPlayRoom({
     (ownerId && sameId(ownerId, currentUserId)) ||
       (ownerUsername && currentUsername && sameId(ownerUsername, currentUsername)) ||
       (!ownerId && !ownerUsername && mySeat === 'white' && !blackPlayer) ||
-      sameId(currentUserRole, 'admin') ||
-      sameId(currentUsername, 'admin'),
+      sameId(currentUserRole, 'admin'),
   )
   const isMyTurn =
     isPlayer &&

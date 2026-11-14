@@ -13,6 +13,8 @@ export const ROUTES = {
   signup: '/signup',
   verifyEmail: '/verify-email',
   profile: '/profile',
+  admin: '/admin',
+  adminUsers: '/admin/users',
 }
 
 export const STORAGE_KEYS = {
@@ -27,8 +29,18 @@ export const STORAGE_KEYS = {
 }
 
 export const GAME = {
-  botDelayMs: 700,
+  botDelayMs: 1500,
   defaultTimeSeconds: 600, // 10 minutes per side
+}
+
+export function getBotThinkDelayMs(difficulty = 'medium') {
+  if (difficulty === 'easy') {
+    return 1200 + Math.floor(Math.random() * 500) // 1.2s – 1.7s
+  }
+  if (difficulty === 'hard') {
+    return 1900 + Math.floor(Math.random() * 900) // 1.9s – 2.8s
+  }
+  return 1500 + Math.floor(Math.random() * 800) // 1.5s – 2.3s
 }
 
 export const PIECE_GLYPHS = {

@@ -83,10 +83,7 @@ function hostName(room, currentUser) {
 function canUserDeleteRoom(room, user) {
   if (!user) return false
   const myUsername = user.username || user.handle || ''
-  if (
-    String(user.role || '').toLowerCase() === 'admin' ||
-    String(myUsername).toLowerCase() === 'admin'
-  ) {
+  if (String(user.role || '').toLowerCase() === 'admin') {
     return true
   }
   const owner = hostMember(room)

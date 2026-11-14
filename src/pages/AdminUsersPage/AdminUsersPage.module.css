@@ -1,0 +1,391 @@
+.page {
+  min-height: calc(100vh - 100px);
+  background: var(--canvas);
+}
+
+.heroBand {
+  background: var(--soft-cloud);
+  border-bottom: 1px solid var(--hairline);
+  padding: 36px 0;
+}
+
+.heroHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.heroCopy {
+  max-width: 620px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--mute);
+  line-height: 1.5;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(115px, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summaryCardTeal {
+  background: rgba(10, 114, 129, 0.08);
+  border-color: var(--accent-teal);
+}
+
+.summaryLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mute);
+}
+
+.summaryCardTeal .summaryLabel {
+  color: var(--accent-teal);
+}
+
+.summaryValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.card {
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  padding: 24px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.filterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.filterPill:hover {
+  background: var(--soft-cloud);
+}
+
+.filterPillActive {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-primary);
+}
+
+.filterPillActive:hover {
+  background: var(--charcoal);
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.searchInput {
+  height: 40px;
+  min-width: 260px;
+  padding: 0 14px;
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.successBanner {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.errorBanner {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.emptyState {
+  padding: 36px 16px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--mute);
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mute);
+  background: var(--soft-cloud);
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--hairline-soft);
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background: rgba(245, 245, 245, 0.65);
+}
+
+.adminRow {
+  background: rgba(10, 114, 129, 0.03);
+}
+
+.memberCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatarAdmin {
+  background: var(--accent-pink);
+  border-color: var(--ink);
+}
+
+.memberInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.memberNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.memberName {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.youTag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  background: var(--accent-purple-pale);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.memberId {
+  font-size: 11px;
+  color: var(--mute);
+  font-family: monospace;
+}
+
+.emailCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.emailText {
+  color: var(--ink);
+}
+
+.verifiedPill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.unverifiedPill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mute);
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline-soft);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.scoreBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.dateCell {
+  color: var(--mute);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.roleAdmin {
+  color: var(--accent-teal);
+  background: rgba(10, 114, 129, 0.14);
+  border: 1px solid rgba(10, 114, 129, 0.35);
+}
+
+.roleUser {
+  color: var(--charcoal);
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline);
+}
+
+.actionsHeader {
+  text-align: right !important;
+}
+
+.actionsCell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.actionButtons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.selfProtectedNote {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  padding: 0 8px;
+}
+
+.loadMoreRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+  }
+
+  .searchInput {
+    min-width: 200px;
+    width: 100%;
+  }
+
+  .toolbarRight {
+    width: 100%;
+  }
+}

@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import knightMark from '../../assets/knight-mark.svg'
 import { useAuth } from '../../hooks/useAuth'
 import { ROUTES } from '../../utils/constants'
-import { cx } from '../../utils/helpers'
+import { cx, isAdminUser } from '../../utils/helpers'
 import { Button } from './Button'
 import styles from './Navbar.module.css'
 
@@ -29,9 +29,7 @@ export function Navbar() {
     (user?.email ? String(user.email).split('@')[0] : null) ||
     'Player'
   const userInitial = String(displayName).trim().charAt(0).toUpperCase() || 'P'
-  const isAdmin =
-    String(user?.role || '').toLowerCase() === 'admin' ||
-    String(displayName).toLowerCase() === 'admin'
+  const isAdmin = isAdminUser(user)
 
   function handleSearch(event) {
     event.preventDefault()
@@ -53,6 +51,11 @@ export function Navbar() {
             </NavLink>
             {user ? (
               <>
+                {isAdmin && (
+                  <NavLink to={ROUTES.adminUsers} className={styles.utilityLink}>
+                    Admin Users
+                  </NavLink>
+                )}
                 <NavLink
                   to={ROUTES.profile}
                   className={styles.utilityUser}
@@ -118,6 +121,14 @@ export function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            {isAdmin && (
+              <NavLink
+                to={ROUTES.adminUsers}
+                className={({ isActive }) => cx(styles.link, isActive && styles.linkActive)}
+              >
+                Admin Users
+              </NavLink>
+            )}
           </nav>
 
           <div className={styles.cluster}>

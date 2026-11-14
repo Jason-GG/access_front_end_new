@@ -1,6 +1,7 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '../layouts/AppLayout'
 import { AuthLayout } from '../layouts/AuthLayout'
+import { AdminUsersPage } from '../pages/AdminUsersPage/AdminUsersPage'
 import { CommunityPage } from '../pages/CommunityPage/CommunityPage'
 import { DonatePage } from '../pages/DonatePage/DonatePage'
 import { FoxPlayPage } from '../pages/FoxPlayPage/FoxPlayPage'
@@ -14,6 +15,7 @@ import { ProfilePage } from '../pages/ProfilePage/ProfilePage'
 import { SignupPage } from '../pages/SignupPage/SignupPage'
 import { VerifyEmailPage } from '../pages/VerifyEmailPage/VerifyEmailPage'
 import { ROUTES } from '../utils/constants'
+import { AdminRoute } from './AdminRoute'
 import { ProtectedRoute } from './ProtectedRoute'
 
 export function AppRouter() {
@@ -33,6 +35,11 @@ export function AppRouter() {
           <Route path={ROUTES.foxPlayRoom} element={<FoxPlayPage />} />
           <Route path={ROUTES.community} element={<CommunityPage />} />
           <Route path={ROUTES.profile} element={<ProfilePage />} />
+        </Route>
+
+        <Route element={<AdminRoute />}>
+          <Route path={ROUTES.admin} element={<Navigate to={ROUTES.adminUsers} replace />} />
+          <Route path={ROUTES.adminUsers} element={<AdminUsersPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
