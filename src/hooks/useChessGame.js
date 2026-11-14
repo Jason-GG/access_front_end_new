@@ -63,6 +63,21 @@ function resolveInitialClocks(saved, isBoardGameOver) {
     }
   }
 
+  if (typeof rawW !== 'number' && typeof rawB !== 'number' && Array.isArray(saved?.history) && saved.history.length > 0) {
+    let wMoves = 0
+    let bMoves = 0
+    saved.history.forEach((m, idx) => {
+      const c = m?.color || (idx % 2 === 0 ? 'w' : 'b')
+      if (c === 'w') wMoves += 1
+      else bMoves += 1
+    })
+    return {
+      white: Math.max(60_000, DEFAULT_CLOCK_MS - wMoves * 3500),
+      black: Math.max(60_000, DEFAULT_CLOCK_MS - bMoves * 3000),
+      timeoutLoser: null,
+    }
+  }
+
   return {
     white: typeof rawW === 'number' && rawW > 0 ? rawW : DEFAULT_CLOCK_MS,
     black: typeof rawB === 'number' && rawB > 0 ? rawB : DEFAULT_CLOCK_MS,

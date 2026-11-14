@@ -832,20 +832,6 @@ function FoxPracticeView({ playMode, setPlayMode }) {
             running={!isGameOver}
             resetKey={resetKey}
             times={displayClocks}
-            whiteLabel={
-              playMode === 'bot'
-                ? orientation === 'white'
-                  ? 'White (You)'
-                  : 'White (Bot)'
-                : 'White'
-            }
-            blackLabel={
-              playMode === 'bot'
-                ? orientation === 'black'
-                  ? 'Black (You)'
-                  : 'Black (Bot)'
-                : 'Black'
-            }
           />
 
           <div className={styles.players}>

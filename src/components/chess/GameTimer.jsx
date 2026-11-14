@@ -5,6 +5,12 @@ import styles from './GameTimer.module.css'
 
 const DEFAULT_CLOCK_MS = GAME.defaultTimeSeconds * 1000
 
+function msToDisplaySeconds(ms) {
+  if (ms <= 0) return 0
+  if (ms < 1000) return 1
+  return Math.floor(ms / 1000)
+}
+
 function Clock({ label, seconds, active }) {
   return (
     <div className={cx(styles.clock, active && styles.clockActive)}>
@@ -113,8 +119,8 @@ export function GameTimer({
 
   const whiteMs = controlled ? Math.max(0, times.white) : uncontrolledClocks.white
   const blackMs = controlled ? Math.max(0, times.black) : uncontrolledClocks.black
-  const whiteSeconds = whiteMs <= 0 ? 0 : Math.ceil(whiteMs / 1000)
-  const blackSeconds = blackMs <= 0 ? 0 : Math.ceil(blackMs / 1000)
+  const whiteSeconds = msToDisplaySeconds(whiteMs)
+  const blackSeconds = msToDisplaySeconds(blackMs)
 
   return (
     <div className={styles.panel}>
